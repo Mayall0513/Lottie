@@ -45,10 +45,10 @@ namespace DiscordBot6 {
         private static async Task DiscordClient_MessageReceived(SocketMessage socketMessage) {
             SocketGuildChannel socketGuildChannel = (socketMessage.Channel as SocketGuildChannel);
             ServerInformation serverInformation = GetServer(socketGuildChannel.Guild.Id);
-            PhraseRuleSet[] phraseRules = await serverInformation.GetPhraseRuleSetsAsync();
+            PhraseRule[] phraseRules = await serverInformation.GetPhraseRuleSetsAsync();
 
-            foreach (PhraseRuleSet phraseRule in phraseRules) { 
-                if (phraseRule.Matches(socketMessage)) {
+            foreach (PhraseRule phraseRule in phraseRules) { 
+                if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage)) {
                     await socketMessage.Channel.DeleteMessageAsync(socketMessage);
                     break;
                 }

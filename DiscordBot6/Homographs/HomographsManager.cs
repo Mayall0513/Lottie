@@ -64,7 +64,7 @@ namespace DiscordBot6.Homographs {
             }
         }
 
-        public static string SubstituteHomographs(PhraseRuleSet phraseRuleSet) {
+        public static string SubstituteHomographs(ulong serverId, PhraseRule phraseRuleSet) {
             Dictionary<string, string[]> homographCache = new Dictionary<string, string[]>();
 
             StringBuilder homographs = new StringBuilder();
@@ -78,7 +78,7 @@ namespace DiscordBot6.Homographs {
                 HomographToken token = tokens[i];
 
                 if (!homographCache.ContainsKey(token.Character)) {
-                    homographCache.Add(token.Character, GetHomographs(token.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
+                    homographCache.Add(token.Character, GetHomographs(token.Character, serverId, phraseRuleSet.HomographOverrides));
                 }
 
                 activeRules.RemoveWhere(activeRule => activeRule.SubstringEnd < textIndex);
@@ -103,7 +103,7 @@ namespace DiscordBot6.Homographs {
                             break;
 
                         case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
-                            string[] newHomographs = substringModifier.DataAsType<string[]>();
+                            string[] newHomographs = substringModifier.Data;
                             foreach (string newHomograph in newHomographs) {
                                 localHomographs.Add(newHomograph);
                             }
@@ -111,15 +111,15 @@ namespace DiscordBot6.Homographs {
                             break;
 
                         case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
-                            string[] homographsToRemove = substringModifier.DataAsType<string[]>();
-                            foreach(string homographToRemove in homographsToRemove) {
+                            string[] homographsToRemove = substringModifier.Data;
+                            foreach (string homographToRemove in homographsToRemove) {
                                 localHomographs.Remove(homographToRemove);
                             }
                   
                             break;              
 
                         case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
-                            localHomographs = new HashSet<string>(substringModifier.DataAsType<string[]>());
+                            localHomographs = new HashSet<string>(substringModifier.Data);
                             break;
                     }
                 }
@@ -178,7 +178,7 @@ namespace DiscordBot6.Homographs {
             return homographs.ToString();
         }
 
-        public static string[] GetHomographs(string character, ulong serverId, PhraseHomographOverride[] homographOverrides = null) {
+        public static string[] GetHomographs(string character, ulong serverId, IReadOnlyCollection<PhraseHomographOverride> homographOverrides = null) {
             if (!serverTemplateCache.ContainsKey(serverId)) {
                 // try get it from database - that isn't set up yet
                 serverTemplateCache.Add(serverId, new Dictionary<string, string[]>(homographsTemplate));
@@ -194,6 +194,10 @@ namespace DiscordBot6.Homographs {
                     }
 
                     switch (homographOverride.OverrideType) {
+                        case HomographOverrideType.OVERRIDE_NO:
+                            homographs.Clear();
+                            break;
+
                         case HomographOverrideType.OVERRIDE_ADD:
                             foreach (string newHomograph in homographOverride.Homographs) {     
                                 homographs.Add(newHomograph);

@@ -6,17 +6,17 @@ namespace DiscordBot6 {
     public sealed class ServerInformation {
         public ulong Id { get; set; }
 
-        private PhraseRuleSet[] phraseRuleSets;
+        private PhraseRule[] phraseRuleSets;
 
         public ServerInformation(ulong id) {
             Id = id;
         }
 
-        public async Task<PhraseRuleSet[]> GetPhraseRuleSetsAsync() {
+        public async Task<PhraseRule[]> GetPhraseRuleSetsAsync() {
             if (phraseRuleSets == null) {
                 // try get from database, if you can't set it to new PhraseRuleSet[0] for no rules - there is no database yet
 
-                phraseRuleSets = new PhraseRuleSet[0];
+                phraseRuleSets = new PhraseRule[0];
             }
 
             return phraseRuleSets;

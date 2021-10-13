@@ -20,17 +20,13 @@ namespace DiscordBot6.Phrases {
         public int SubstringEnd { get; set; }
 
         public SubstringModifierType ModifierType { get; set; }
-        public object Data { get; set; }
+        public string[] Data { get; set; }
 
-        public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType, object data) {
+        public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType, string[] data) {
             SubstringStart = substringStart;
             SubstringEnd = substringEnd;
             ModifierType = modifierType;
             Data = data;
-        }
-
-        public T DataAsType<T>() where T : class {
-            return Data as T;
         }
 
         public int CompareTo(PhraseSubstringModifier otherModifier) {

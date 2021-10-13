@@ -5,12 +5,6 @@ using PCRE;
 using DiscordBot6.Homographs;
 
 namespace DiscordBot6.Phrases {
-    public enum BoundaryFlags {
-        REQUIRED,
-        NONE,
-        BANNED
-    }
-
     public static class RegexPatterns {
         public const string PATTERN_WORDSTART                 = "(?:\\s|^){0}";
         public const string PATTERN_WORDSTART_NOTMESSAGESTART = "(?<!^)(?:\\s){0}";
@@ -37,10 +31,16 @@ namespace DiscordBot6.Phrases {
     }
 
     public static class PhraseRegexBuilder {
-        public static PcreRegex ConstructRegex(PhraseRuleSet phraseRuleSet) {
+        public enum BoundaryFlags : byte {
+            REQUIRED,
+            NONE,
+            BANNED
+        }
+
+        public static PcreRegex ConstructRegex(ulong serverId, PhraseRule phraseRuleSet) {
             PcreOptions pcreOptions = PcreOptions.Compiled | PcreOptions.Caseless | PcreOptions.Unicode;
 
-            string homographs = HomographsManager.SubstituteHomographs(phraseRuleSet);
+            string homographs = HomographsManager.SubstituteHomographs(serverId, phraseRuleSet);
             bool textIsWrapped = false;
             string escapedString;
 
@@ -49,7 +49,7 @@ namespace DiscordBot6.Phrases {
             BoundaryFlags messageStartFlag = BoundaryFlags.NONE;
             BoundaryFlags messageEndFlag = BoundaryFlags.NONE;
 
-            foreach (PhraseRuleRequirement phraseRuleModifier in phraseRuleSet.Requirements) {
+            foreach (PhraseRuleConstraint phraseRuleModifier in phraseRuleSet.Constraints) {
                 switch (phraseRuleModifier.RequirementType) {
                     case RuleRequirementType.MODIFIER_WORD:
                         wordStartFlag = BoundaryFlags.REQUIRED;
@@ -114,8 +114,8 @@ namespace DiscordBot6.Phrases {
                             textIsWrapped = true;
                         }
 
-                        escapedString = EscapeString(phraseRuleModifier.DataAsType<string>(), false);
-                        homographs = string.Format(RegexPatterns.PATTERN_NOT_BEFORE, homographs, phraseRuleModifier.DataAsType<string>());
+                        escapedString = EscapeString(phraseRuleModifier.Data[0], false);
+                        homographs = string.Format(RegexPatterns.PATTERN_NOT_BEFORE, homographs, escapedString);
                         break;
 
 
@@ -125,7 +125,7 @@ namespace DiscordBot6.Phrases {
                             textIsWrapped = true;
                         }
 
-                        escapedString = EscapeString(phraseRuleModifier.DataAsType<string>(), false);
+                        escapedString = EscapeString(phraseRuleModifier.Data[0], false);
                         homographs = string.Format(RegexPatterns.PATTERN_NOT_AFTER, homographs, escapedString);
                         break;
                 }

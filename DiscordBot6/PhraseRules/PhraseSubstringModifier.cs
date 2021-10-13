@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DiscordBot6.Phrases {
     public enum SubstringModifierType {
@@ -20,7 +21,7 @@ namespace DiscordBot6.Phrases {
         public int SubstringEnd { get; set; }
 
         public SubstringModifierType ModifierType { get; set; }
-        public string[] Data { get; set; }
+        public IReadOnlyCollection<string> Data { get; set; }
 
         public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType, string[] data) {
             SubstringStart = substringStart;

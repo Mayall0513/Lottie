@@ -48,7 +48,7 @@ namespace DiscordBot6 {
             PhraseRule[] phraseRules = await serverInformation.GetPhraseRuleSetsAsync();
 
             foreach (PhraseRule phraseRule in phraseRules) { 
-                if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage)) {
+                if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
                     await socketMessage.Channel.DeleteMessageAsync(socketMessage);
                     break;
                 }

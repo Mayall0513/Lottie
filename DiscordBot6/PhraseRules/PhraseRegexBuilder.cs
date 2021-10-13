@@ -28,12 +28,17 @@ namespace DiscordBot6.Phrases {
 
         public const string PATTERN_NOT_BEFORE = "{0}(?!{1})";
         public const string PATTERN_NOT_AFTER  = "(?<!{1}){0}";
+
+        public static readonly string[] PATTERNGROUP_LOOKAROUNDS = new[] {
+            PATTERN_NOT_BEFORE,
+            PATTERN_NOT_AFTER
+        };
     }
 
     public static class PhraseRegexBuilder {
         public enum BoundaryFlags : byte {
-            REQUIRED,
             NONE,
+            REQUIRED,
             BANNED
         }
 
@@ -56,77 +61,59 @@ namespace DiscordBot6.Phrases {
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_WORDSTART:
                         wordStartFlag = BoundaryFlags.REQUIRED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_WORDEND:
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
-
 
                     case RuleRequirementType.MODIFIER_MESSAGE:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         break;
-
 
                     case RuleRequirementType.MODIFIER_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_CASESENSITIVE:
                         pcreOptions &= ~PcreOptions.Caseless;
                         break;
-
 
                     case RuleRequirementType.MODIFIER_NOT_WORDSTART:
                         wordStartFlag = BoundaryFlags.BANNED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_NOT_WORDEND:
                         wordEndFlag = BoundaryFlags.BANNED;
                         break;
-
 
                     case RuleRequirementType.MODIFIER_NOT_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.BANNED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_NOT_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.BANNED;
                         break;
 
-
                     case RuleRequirementType.MODIFIER_NOT_BEFORE:
+                    case RuleRequirementType.MODIFIER_NOT_AFTER:       
                         if (!textIsWrapped) {
                             homographs = $"(?:{homographs})";
                             textIsWrapped = true;
                         }
-
-                        escapedString = EscapeString(phraseRuleModifier.Data[0], false);
-                        homographs = string.Format(RegexPatterns.PATTERN_NOT_BEFORE, homographs, escapedString);
-                        break;
-
-
-                    case RuleRequirementType.MODIFIER_NOT_AFTER:
-                        if (!textIsWrapped) {
-                            homographs = $"(?:{homographs})";
-                            textIsWrapped = true;
+                        
+                        foreach (string bannedPhrase in phraseRuleModifier.Data) {
+                            escapedString = EscapeString(bannedPhrase, false);
+                            homographs = string.Format(RegexPatterns.PATTERNGROUP_LOOKAROUNDS[phraseRuleModifier.RequirementType - RuleRequirementType.MODIFIER_NOT_BEFORE], homographs, escapedString);
                         }
-
-                        escapedString = EscapeString(phraseRuleModifier.Data[0], false);
-                        homographs = string.Format(RegexPatterns.PATTERN_NOT_AFTER, homographs, escapedString);
+                        
                         break;
                 }
             }
@@ -166,6 +153,9 @@ namespace DiscordBot6.Phrases {
                     case ']':
                     case '\\':
                         return true;
+
+                    default:
+                        return false;
                 }
             }
 
@@ -184,10 +174,11 @@ namespace DiscordBot6.Phrases {
                     case '|':
                     case '/':
                         return true;
+
+                    default:
+                        return false;
                 }
             }
-
-            return false;
         }
 
         public static void AddWordMessageStartRequirement(ref string text, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {

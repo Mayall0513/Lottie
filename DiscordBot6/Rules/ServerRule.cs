@@ -7,16 +7,16 @@ namespace DiscordBot6.Rules {
         public ulong ServerId { get; private set; }
         public IReadOnlyCollection<ServerRuleConstraint> Constriants { get; private set; }
 
-        protected ulong[] userConstraints = null;
+        protected IReadOnlyCollection<ulong> userConstraints = null;
         protected bool userWhitelist = false;
 
-        protected ulong[] channelConstraints = null;
+        protected IReadOnlyCollection<ulong> channelConstraints = null;
         protected bool channelWhitelist = false;
 
-        protected ulong[] roleWhitelist = null;
+        protected IReadOnlyCollection<ulong> roleWhitelist = null;
         protected bool roleWhitelistAll = false;
 
-        protected ulong[] roleBlacklist = null;
+        protected IReadOnlyCollection<ulong> roleBlacklist = null;
         protected bool roleBlacklistAll = false;
 
         public virtual bool CanApply(ulong userId, ulong channelId, IReadOnlyCollection<ulong> roles) {

@@ -1,4 +1,6 @@
-﻿namespace DiscordBot6.Phrases {
+﻿using System.Collections.Generic;
+
+namespace DiscordBot6.Phrases {
     public enum RuleRequirementType {
         MODIFIER_WORD,         // must be a standalone word
         MODIFIER_WORDSTART,    // must be at the start of a word
@@ -26,7 +28,7 @@
     /// </summary>
     public struct PhraseRuleConstraint {
         public RuleRequirementType RequirementType { get; set; }
-        public string[] Data { get; set; }
+        public IReadOnlyCollection<string> Data { get; set; }
 
         public PhraseRuleConstraint(RuleRequirementType requirementType, string[] data) {
             RequirementType = requirementType;

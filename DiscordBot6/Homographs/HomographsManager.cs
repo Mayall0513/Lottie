@@ -103,16 +103,14 @@ namespace DiscordBot6.Homographs {
                             break;
 
                         case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
-                            string[] newHomographs = substringModifier.Data;
-                            foreach (string newHomograph in newHomographs) {
+                            foreach (string newHomograph in substringModifier.Data) {
                                 localHomographs.Add(newHomograph);
                             }
 
                             break;
 
                         case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
-                            string[] homographsToRemove = substringModifier.Data;
-                            foreach (string homographToRemove in homographsToRemove) {
+                            foreach (string homographToRemove in substringModifier.Data) {
                                 localHomographs.Remove(homographToRemove);
                             }
                   

@@ -48,8 +48,8 @@ namespace DiscordBot6.Phrases {
             DeriveMetaInformation();
         }
 
-        public bool Matches(SocketMessage socketMessage) {
-            return regex.IsMatch(socketMessage.Content);
+        public bool Matches(string text) {
+            return regex.IsMatch(text);
         }
 
         public bool CanApply(SocketMessage socketMessage) {

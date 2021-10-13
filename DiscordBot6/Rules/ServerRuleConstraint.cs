@@ -1,4 +1,6 @@
-﻿namespace DiscordBot6.Rules {
+﻿using System.Collections.Generic;
+
+namespace DiscordBot6.Rules {
     public enum RuleConstraintType {
         CONSTRAINT_USER_WHITELIST,
         CONSTRAINT_USER_BLACKLIST,
@@ -14,7 +16,7 @@
 
     public struct ServerRuleConstraint {
         public RuleConstraintType ConstraintType { get; set; }
-        public ulong[] Constraints { get; set; }
+        public IReadOnlyCollection<ulong> Constraints { get; set; }
 
         public ServerRuleConstraint(RuleConstraintType constraintType, ulong[] constraints) {
             ConstraintType = constraintType;

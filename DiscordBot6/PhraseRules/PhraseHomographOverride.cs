@@ -1,4 +1,6 @@
-﻿namespace DiscordBot6.Phrases {
+﻿using System.Collections.Generic;
+
+namespace DiscordBot6.Phrases {
     public enum HomographOverrideType {
         OVERRIDE_NO,     // use no homographs for this phrase
         OVERRIDE_ADD,    // add an equivalent character for this phrase
@@ -11,7 +13,7 @@
     /// </summary>
     public struct PhraseHomographOverride {
         public string Pattern { get; set; }
-        public string[] Homographs { get; set; }
+        public IReadOnlyCollection<string> Homographs { get; set; }
 
         public HomographOverrideType OverrideType { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DiscordBot6.Phrases {
     public enum HomographOverrideType {
@@ -20,7 +21,17 @@ namespace DiscordBot6.Phrases {
         public PhraseHomographOverride(string pattern, string[] homographs, HomographOverrideType overrideType) {
             Pattern = pattern;
             Homographs = homographs;
+
             OverrideType = overrideType;
         }
+    }
+
+    public sealed class PhraseHomographOverrideModel {
+        public int Id { get; set; }
+        public int PhraseRuleId { get; set; }
+        public DateTime CreationTime { get; set; }
+
+        public int OverrideType { get; set; }
+        public ICollection<string> Homographs { get; set; }
     }
 }

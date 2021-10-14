@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 using Discord;
 using Discord.WebSocket;
 
 using PCRE;
+
 using DiscordBot6.Rules;
-using System.Linq;
 
 namespace DiscordBot6.Phrases {
     public sealed class PhraseRule : ServerRule {
@@ -89,6 +90,18 @@ namespace DiscordBot6.Phrases {
                 }
             }
         }
+    }
+
+    public sealed class PhraseRuleModel {
+        public ulong Id { get; set; }
+        public ulong ServerId { get; set; }
+        public DateTime CreationTime { get; set; }
+
+        public string Text { get; set; }
+        public bool ManualPattern { get; set; }
+        public string Pattern { get; set; }
+        public bool BotDelete { get; set; }
+        public bool SelfDelete { get; set; }
     }
 
     public sealed class PhraseRuleFactory {

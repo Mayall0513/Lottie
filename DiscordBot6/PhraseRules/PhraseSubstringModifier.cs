@@ -19,13 +19,14 @@ namespace DiscordBot6.Phrases {
     public struct PhraseSubstringModifier : IComparable<PhraseSubstringModifier> {
         public int SubstringStart { get; set; }
         public int SubstringEnd { get; set; }
-
+         
         public SubstringModifierType ModifierType { get; set; }
         public IReadOnlyCollection<string> Data { get; set; }
 
         public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType, string[] data) {
             SubstringStart = substringStart;
             SubstringEnd = substringEnd;
+
             ModifierType = modifierType;
             Data = data;
         }
@@ -33,5 +34,14 @@ namespace DiscordBot6.Phrases {
         public int CompareTo(PhraseSubstringModifier otherModifier) {
             return SubstringStart - otherModifier.SubstringStart;
         }
+    }
+
+    public sealed class PhraseSubstringModifierModel {
+        public int Id { get; set; }
+        public int PhraseRuleId { get; set; }
+        public DateTime CreationTime { get; set; }
+
+        public int OverrideType { get; set; }
+        public ICollection<string> Data { get; set; }
     }
 }

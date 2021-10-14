@@ -5,6 +5,8 @@ using System.Linq;
 namespace DiscordBot6.Rules {
     public class ServerRule {
         public ulong ServerId { get; private set; }
+        public DateTime CreationTime { get; private set; }
+
         public IReadOnlyCollection<ServerRuleConstraint> Constriants { get; private set; }
 
         protected IReadOnlyCollection<ulong> userConstraints = null;

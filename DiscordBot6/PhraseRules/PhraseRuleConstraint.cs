@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DiscordBot6.Phrases {
     public enum RuleRequirementType {
@@ -34,5 +35,14 @@ namespace DiscordBot6.Phrases {
             RequirementType = requirementType;
             Data = data;
         }
+    }
+
+    public sealed class PhraseRuleConstraintModel {
+        public int Id { get; set; }
+        public int PhraseRuleId { get; set; }
+        public DateTime CreationTime { get; set; }
+
+        public int ConstraintType { get; set; }
+        public ICollection<string> Data { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DiscordBot6.Rules {
     public enum RuleConstraintType {
@@ -22,5 +23,14 @@ namespace DiscordBot6.Rules {
             ConstraintType = constraintType;
             Constraints = constraints;
         }
+    }
+
+    public sealed class ServerRuleConstraintModel {
+        public int Id { get; set; }
+        public int PhraseRuleId { get; set; }
+        public DateTime CreationTime { get; set; }
+   
+        public int ConstraintType { get; set; }
+        public List<ulong> Constraints { get; set; }
     }
 }

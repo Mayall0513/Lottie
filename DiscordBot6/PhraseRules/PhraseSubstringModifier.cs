@@ -16,32 +16,21 @@ namespace DiscordBot6.Phrases {
     /// <summary>
     /// Defines a rule that is only applied on a specific substring of a phrase.
     /// </summary>
-    public struct PhraseSubstringModifier : IComparable<PhraseSubstringModifier> {
-        public int SubstringStart { get; set; }
-        public int SubstringEnd { get; set; }
-         
-        public SubstringModifierType ModifierType { get; set; }
-        public IReadOnlyCollection<string> Data { get; set; }
+    public class PhraseSubstringModifier : IComparable<PhraseSubstringModifier> {
+        public int SubstringStart { get; }
+        public int SubstringEnd { get; }
+        public SubstringModifierType ModifierType { get; }
 
-        public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType, string[] data) {
+        public List<string> Data { get; } = new List<string>();
+
+        public PhraseSubstringModifier(int substringStart, int substringEnd, SubstringModifierType modifierType) {
             SubstringStart = substringStart;
             SubstringEnd = substringEnd;
-
             ModifierType = modifierType;
-            Data = data;
         }
 
         public int CompareTo(PhraseSubstringModifier otherModifier) {
             return SubstringStart - otherModifier.SubstringStart;
         }
-    }
-
-    public sealed class PhraseSubstringModifierModel {
-        public int Id { get; set; }
-        public int PhraseRuleId { get; set; }
-        public DateTime CreationTime { get; set; }
-
-        public int OverrideType { get; set; }
-        public ICollection<string> Data { get; set; }
     }
 }

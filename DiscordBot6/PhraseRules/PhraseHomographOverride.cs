@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace DiscordBot6.Phrases {
     public enum HomographOverrideType {
@@ -12,26 +11,15 @@ namespace DiscordBot6.Phrases {
     /// <summary>
     /// Used to add or remove homographs on a phrase-specific basis.
     /// </summary>
-    public struct PhraseHomographOverride {
-        public string Pattern { get; set; }
-        public IReadOnlyCollection<string> Homographs { get; set; }
+    public sealed class PhraseHomographOverride {
+        public string Pattern { get; }
+        public HomographOverrideType OverrideType { get; }
 
-        public HomographOverrideType OverrideType { get; set; }
+        public List<string> Homographs { get; } = new List<string>();
 
-        public PhraseHomographOverride(string pattern, string[] homographs, HomographOverrideType overrideType) {
+        public PhraseHomographOverride(string pattern, HomographOverrideType overrideType) {
             Pattern = pattern;
-            Homographs = homographs;
-
             OverrideType = overrideType;
         }
-    }
-
-    public sealed class PhraseHomographOverrideModel {
-        public int Id { get; set; }
-        public int PhraseRuleId { get; set; }
-        public DateTime CreationTime { get; set; }
-
-        public int OverrideType { get; set; }
-        public ICollection<string> Homographs { get; set; }
     }
 }

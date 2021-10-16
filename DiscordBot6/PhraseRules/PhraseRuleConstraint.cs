@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace DiscordBot6.Phrases {
     public enum RuleRequirementType {
@@ -27,22 +26,12 @@ namespace DiscordBot6.Phrases {
     /// <summary>
     /// Defines a rule applied to all of a phrase
     /// </summary>
-    public struct PhraseRuleConstraint {
-        public RuleRequirementType RequirementType { get; set; }
-        public IReadOnlyCollection<string> Data { get; set; }
+    public sealed class PhraseRuleConstraint {
+        public RuleRequirementType RequirementType { get; }
+        public List<string> Data { get; } = new List<string>();
 
-        public PhraseRuleConstraint(RuleRequirementType requirementType, string[] data) {
+        public PhraseRuleConstraint(RuleRequirementType requirementType) {
             RequirementType = requirementType;
-            Data = data;
         }
-    }
-
-    public sealed class PhraseRuleConstraintModel {
-        public int Id { get; set; }
-        public int PhraseRuleId { get; set; }
-        public DateTime CreationTime { get; set; }
-
-        public int ConstraintType { get; set; }
-        public ICollection<string> Data { get; set; }
     }
 }

@@ -16,8 +16,8 @@ namespace DiscordBot6.Phrases {
         public const string PATTERN_WORDEND_NOTMESSAGEEND = "(?:\\s)(?!$)";
         public const string PATTERN_NOT_WORDEND           = "[^\\s]";
 
-        public const string PATTERN_NOT_BEFORE = "(?!{1})";
-        public const string PATTERN_NOT_AFTER  = "(?<!{1})";
+        public const string PATTERN_NOT_BEFORE = "(?!{0})";
+        public const string PATTERN_NOT_AFTER  = "(?<!{0})";
 
         public const string PATTERN_ONE_OR_MORE_GROUP  = "(?:{0})+";
         public const string PATTERN_EXACT_LENGTH_GROUP = "(?:{0}){{1}}";
@@ -68,7 +68,7 @@ namespace DiscordBot6.Phrases {
             public int Length { get; set; }
         }
 
-        public static PcreRegex ConstructRegex(PhraseRule phraseRuleSet) {
+        public static PcreRegex CreateRegex(PhraseRule phraseRuleSet) {
             PcreOptions pcreOptions = PcreOptions.Compiled | PcreOptions.Caseless | PcreOptions.Unicode;
             StringBuilder regex = new StringBuilder();
 
@@ -84,7 +84,7 @@ namespace DiscordBot6.Phrases {
                 UpdateSubstringModifiers(remainingSubstringModifiers, activeSubstringModifiers, ref homographModifierCount, textIndex);
 
                 if (!homographCache.ContainsKey(regexToken.Character)) {
-                    homographCache.Add(regexToken.Character, HomographsManager.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
+                    homographCache.Add(regexToken.Character, HomographsHelper.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
                 }
 
                 HashSet<string> localHomographs = homographModifierCount > 0 ? new HashSet<string>(homographCache[regexToken.Character]) : homographCache[regexToken.Character];
@@ -141,7 +141,11 @@ namespace DiscordBot6.Phrases {
                         characterAggregate.Insert(0, "[").Append("]");
                     }
 
-                    homographAggregate.Append("|").Append(characterAggregate);
+                    if (homographAggregate.Length > 0) {
+                        homographAggregate.Append("|");
+                    }
+
+                    homographAggregate.Append(characterAggregate);
                 }
 
                 if (characterCountOverride != 1 || regexToken.Length != 1) {

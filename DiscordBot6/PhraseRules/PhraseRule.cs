@@ -11,14 +11,14 @@ using DiscordBot6.Rules;
 
 namespace DiscordBot6.Phrases {
     public sealed class PhraseRule : ServerRule {
-        public string Text { get; private set; }
+        public string Text { get; }
 
-        public IReadOnlyCollection<PhraseRuleConstraint> Constraints { get; private set; }
-        public IReadOnlyCollection<PhraseHomographOverride> HomographOverrides { get; private set; }
-        public IReadOnlyCollection<PhraseSubstringModifier> SubstringModifiers { get; private set; }
+        public IReadOnlyCollection<PhraseRuleConstraint> Constraints { get; }
+        public IReadOnlyCollection<PhraseHomographOverride> HomographOverrides { get; }
+        public IReadOnlyCollection<PhraseSubstringModifier> SubstringModifiers { get; }
 
-        public bool ManualPattern { get; private set; }
-        public string Pattern { get; private set; }
+        public bool ManualPattern { get; }
+        public string Pattern { get; }
 
         private PcreRegex regex;
 
@@ -33,7 +33,7 @@ namespace DiscordBot6.Phrases {
             Array.Sort(substringModifiers);
             SubstringModifiers = substringModifiers;
 
-            regex = PhraseRegexBuilder.ConstructRegex(this);
+            regex = PhraseRegexBuilder.CreateRegex(this);
             Pattern = regex.PatternInfo.PatternString;
 
             DeriveMetaInformation();
@@ -58,7 +58,7 @@ namespace DiscordBot6.Phrases {
             SocketGuildUser guildUser = socketMessage.Author as SocketGuildUser;
             IReadOnlyCollection<ulong> roleIds = guildUser.Roles.Select(x => x.Id).ToArray();
 
-            if (CanApply(socketMessage.Author.Id, guildChannel.Id, roleIds)) {
+            if (!CanApply(socketMessage.Author.Id, guildChannel.Id, roleIds)) {
                 return false;
             }
 
@@ -71,10 +71,6 @@ namespace DiscordBot6.Phrases {
             }
 
             return true;
-        }
-
-        public static PhraseRuleFactory FromFactory(string text) {
-            return new PhraseRuleFactory(text);
         }
 
         private void DeriveMetaInformation() {
@@ -93,51 +89,25 @@ namespace DiscordBot6.Phrases {
     }
 
     public sealed class PhraseRuleModel {
-        public ulong Id { get; set; }
-        public ulong ServerId { get; set; }
-        public DateTime CreationTime { get; set; }
-
         public string Text { get; set; }
         public bool ManualPattern { get; set; }
         public string Pattern { get; set; }
+        public long? PcreOptions { get; set; }
         public bool BotDelete { get; set; }
         public bool SelfDelete { get; set; }
-    }
 
-    public sealed class PhraseRuleFactory {
-        private readonly string text;
+        public Dictionary<ulong, ServerRuleConstraint> ServerRules { get; set; } = new Dictionary<ulong, ServerRuleConstraint>();
+        public Dictionary<ulong, PhraseRuleConstraint> Constraints { get; set; } = new Dictionary<ulong, PhraseRuleConstraint>();
+        public Dictionary<ulong, PhraseHomographOverride> HomographOverrides { get; set; } = new Dictionary<ulong, PhraseHomographOverride>();
+        public Dictionary<ulong, PhraseSubstringModifier> SubstringModifiers { get; set; } = new Dictionary<ulong, PhraseSubstringModifier>();
 
-        private readonly List<ServerRuleConstraint> serverRuleConstraints = new List<ServerRuleConstraint>();
-        private readonly List<PhraseRuleConstraint> ruleRequirements = new List<PhraseRuleConstraint>();
-        private readonly List<PhraseHomographOverride> ruleHomographOverrides = new List<PhraseHomographOverride>();
-        private readonly List<PhraseSubstringModifier> substringModifiers = new List<PhraseSubstringModifier>();
-
-        public PhraseRuleFactory(string text) {
-            this.text = text;
-        }
-
-        public PhraseRuleFactory WithServerRuleRequirement(ServerRuleConstraint ruleConstraint) {
-            serverRuleConstraints.Add(ruleConstraint);
-            return this;
-        }
-
-        public PhraseRuleFactory WithPhraseRuleRequirement(PhraseRuleConstraint ruleConstraint) {
-            ruleRequirements.Add(ruleConstraint);
-            return this;
-        }
-
-        public PhraseRuleFactory WithHomographOverride(PhraseHomographOverride homographOverride) {
-            ruleHomographOverrides.Add(homographOverride);
-            return this;
-        }
-
-        public PhraseRuleFactory WithRuleSubstringModifier(PhraseSubstringModifier substringModifier) {
-            substringModifiers.Add(substringModifier);
-            return this;
-        }
-
-        public PhraseRule Build(ulong serverId) {
-            return new PhraseRule(serverId, text, serverRuleConstraints.ToArray(), ruleRequirements.ToArray(), ruleHomographOverrides.ToArray(), substringModifiers.ToArray());
+        public PhraseRuleModel(string text, bool manualPattern, string pattern, long pcreOptions, bool botDelete, bool selfDelete) {
+            Text = text;
+            ManualPattern = manualPattern;
+            Pattern = pattern;
+            PcreOptions = pcreOptions;
+            BotDelete = botDelete;
+            SelfDelete = selfDelete;
         }
     }
 }

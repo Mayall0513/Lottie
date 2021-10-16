@@ -33,7 +33,7 @@ namespace DiscordBot6.Phrases {
             Array.Sort(substringModifiers);
             SubstringModifiers = substringModifiers;
 
-            regex = PhraseRegexBuilder.ConstructRegex(serverId, this);
+            regex = PhraseRegexBuilder.ConstructRegex(this);
             Pattern = regex.PatternInfo.PatternString;
 
             DeriveMetaInformation();

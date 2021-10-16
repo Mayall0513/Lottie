@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using System.Globalization;
+using System.Collections.Generic;
 
 using PCRE;
 
@@ -6,13 +8,26 @@ using DiscordBot6.Homographs;
 
 namespace DiscordBot6.Phrases {
     public static class RegexPatterns {
-        public const string PATTERN_WORDSTART                 = "(?:\\s|^){0}";
-        public const string PATTERN_WORDSTART_NOTMESSAGESTART = "(?<!^)(?:\\s){0}";
-        public const string PATTERN_NOT_WORDSTART             = "[^\\s]{0}";
+        public const string PATTERN_WORDSTART                 = "(?:\\s|^)";
+        public const string PATTERN_WORDSTART_NOTMESSAGESTART = "(?<!^)(?:\\s)";
+        public const string PATTERN_NOT_WORDSTART             = "[^\\s]";
 
-        public const string PATTERN_WORDEND               = "{0}(?:\\s|$)";
-        public const string PATTERN_WORDEND_NOTMESSAGEEND = "{0}(?:\\s)(?!$)";
-        public const string PATTERN_NOT_WORDEND           = "{0}[^\\s]";
+        public const string PATTERN_WORDEND               = "(?:\\s|$)";
+        public const string PATTERN_WORDEND_NOTMESSAGEEND = "(?:\\s)(?!$)";
+        public const string PATTERN_NOT_WORDEND           = "[^\\s]";
+
+        public const string PATTERN_NOT_BEFORE = "(?!{1})";
+        public const string PATTERN_NOT_AFTER  = "(?<!{1})";
+
+        public const string PATTERN_ONE_OR_MORE_GROUP  = "(?:{0})+";
+        public const string PATTERN_EXACT_LENGTH_GROUP = "(?:{0}){{1}}";
+        public const string PATTERN_ATLEAST_GROUP      = "(?:{0}){{1},}";
+        public const string PATTERN_AT_MOST_GROUP      = "(?:{0}){,{1}}";
+
+        public const string PATTERN_ONE_OR_MORE_NOGROUP  = "{0}+";
+        public const string PATTERN_EXACT_LENGTH_NOGROUP = "{0}{{1}}";
+        public const string PATTERN_ATLEAST_NOGROUP      = "{0}{{1},}";
+        public const string PATTERN_AT_MOST_NOGROUP      = "{0}{,{1}}";
 
         public static readonly string[] PATTERNGROUP_WORDSTART = new[] {
             PATTERN_WORDSTART,
@@ -26,12 +41,18 @@ namespace DiscordBot6.Phrases {
             PATTERN_NOT_WORDEND
         };
 
-        public const string PATTERN_NOT_BEFORE = "{0}(?!{1})";
-        public const string PATTERN_NOT_AFTER  = "(?<!{1}){0}";
+        public static readonly string[] PATTERNGROUP_QUANTIFIERS_GROUP = new string[] {
+            PATTERN_ONE_OR_MORE_GROUP,
+            PATTERN_EXACT_LENGTH_GROUP,
+            PATTERN_ATLEAST_GROUP,
+            PATTERN_AT_MOST_GROUP
+        };
 
-        public static readonly string[] PATTERNGROUP_LOOKAROUNDS = new[] {
-            PATTERN_NOT_BEFORE,
-            PATTERN_NOT_AFTER
+        public static readonly string[] PATTERNGROUP_QUANTIFIERS_NOGROUP = new string[] {
+            PATTERN_ONE_OR_MORE_NOGROUP,
+            PATTERN_EXACT_LENGTH_NOGROUP,
+            PATTERN_ATLEAST_NOGROUP,
+            PATTERN_AT_MOST_NOGROUP
         };
     }
 
@@ -42,10 +63,106 @@ namespace DiscordBot6.Phrases {
             BANNED
         }
 
-        public static PcreRegex ConstructRegex(ulong serverId, PhraseRule phraseRuleSet) {
-            PcreOptions pcreOptions = PcreOptions.Compiled | PcreOptions.Caseless | PcreOptions.Unicode;
+        public struct RegexToken {
+            public string Character { get; set; }
+            public int Length { get; set; }
+        }
 
-            string homographs = HomographsManager.SubstituteHomographs(serverId, phraseRuleSet);
+        public static PcreRegex ConstructRegex(PhraseRule phraseRuleSet) {
+            PcreOptions pcreOptions = PcreOptions.Compiled | PcreOptions.Caseless | PcreOptions.Unicode;
+            StringBuilder regex = new StringBuilder();
+
+            Stack<PhraseSubstringModifier> remainingSubstringModifiers = new Stack<PhraseSubstringModifier>();
+            HashSet<PhraseSubstringModifier> activeSubstringModifiers = new HashSet<PhraseSubstringModifier>();
+
+            Dictionary<string, HashSet<string>> homographCache = new Dictionary<string, HashSet<string>>();
+            int characterCountOverride = 0; // 0 for no override, 1 for exact, 2 for minimum, 3 for maximum
+            int textIndex = 1;
+            int homographModifierCount = 0;
+
+            foreach (RegexToken regexToken in GetTokens(phraseRuleSet.Text)) {
+                UpdateSubstringModifiers(remainingSubstringModifiers, activeSubstringModifiers, ref homographModifierCount, textIndex);
+
+                if (!homographCache.ContainsKey(regexToken.Character)) {
+                    homographCache.Add(regexToken.Character, HomographsManager.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
+                }
+
+                HashSet<string> localHomographs = homographModifierCount > 0 ? new HashSet<string>(homographCache[regexToken.Character]) : homographCache[regexToken.Character];
+                foreach (PhraseSubstringModifier substringModifier in activeSubstringModifiers) {
+                    switch (substringModifier.ModifierType) {
+                        case SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT:
+                        case SubstringModifierType.MODIFIER_CHARACTERCOUNT_MINIMUM:
+                        case SubstringModifierType.MODIFIER_CHARACTERCOUNT_MAXIMUM:
+                            characterCountOverride = (int) substringModifier.ModifierType - (int) SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT + 1;
+                            break;
+
+                        case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
+                            localHomographs.Clear();
+                            break;
+
+                        case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
+                            localHomographs.UnionWith(substringModifier.Data);
+                            break;
+
+                        case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
+                            localHomographs.ExceptWith(substringModifier.Data);
+                            break;
+
+                        case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                            localHomographs.Clear();
+                            localHomographs.UnionWith(substringModifier.Data);
+                            break;
+                    }
+                }
+
+                StringBuilder homographAggregate = new StringBuilder(); // this contains all homographs that contain multiple characters
+                StringBuilder characterAggregate = new StringBuilder(); // this contains all homographs that contain only one character, this is combined into homographAggregate (above) if it's not empty later on
+                int characterAggregateSize = 0;
+
+                foreach (string localHomograph in localHomographs) {
+                    StringInfo homographInfo = new StringInfo(localHomograph);
+
+                    if (homographInfo.LengthInTextElements == 1) {
+                        characterAggregate.Append(localHomograph);
+                        characterAggregateSize++;
+                    }
+
+                    else {
+                        if (homographAggregate.Length > 0) {
+                            homographAggregate.Append("|");
+                        }
+
+                        homographAggregate.Append("(?:").Append(EscapeString(localHomograph, false)).Append(")");
+                    }
+                }
+
+                if (characterAggregateSize > 0) { // if the character aggregate isn't empty, we need to combine it with the homograph aggregate
+                    if (characterAggregateSize > 1) { // if the character aggregate contains more than 1 character we need to put [...]'s around it
+                        characterAggregate.Insert(0, "[").Append("]");
+                    }
+
+                    homographAggregate.Append("|").Append(characterAggregate);
+                }
+
+                if (characterCountOverride != 1 || regexToken.Length != 1) {
+                    string homographs = homographAggregate.ToString();
+
+                    if (homographs.Contains("|")) {
+                        regex.AppendFormat(RegexPatterns.PATTERNGROUP_QUANTIFIERS_GROUP[characterCountOverride], homographs, regexToken.Length);
+                    }
+
+                    else {
+                        regex.AppendFormat(RegexPatterns.PATTERNGROUP_QUANTIFIERS_NOGROUP[characterCountOverride], homographs, regexToken.Length);
+                    }
+                }
+
+                else {
+                    regex.Append(homographAggregate.ToString());
+                }
+
+                textIndex += regexToken.Length;
+            }
+
             bool textIsWrapped = false;
             string escapedString;
 
@@ -103,25 +220,113 @@ namespace DiscordBot6.Phrases {
                         break;
 
                     case RuleRequirementType.MODIFIER_NOT_BEFORE:
-                    case RuleRequirementType.MODIFIER_NOT_AFTER:       
+                    case RuleRequirementType.MODIFIER_NOT_AFTER:
                         if (!textIsWrapped) {
-                            homographs = $"(?:{homographs})";
+                            regex.Insert(0, "(?:");
+                            regex.Append(")");
+
                             textIsWrapped = true;
                         }
                         
                         foreach (string bannedPhrase in phraseRuleModifier.Data) {
                             escapedString = EscapeString(bannedPhrase, false);
-                            homographs = string.Format(RegexPatterns.PATTERNGROUP_LOOKAROUNDS[phraseRuleModifier.RequirementType - RuleRequirementType.MODIFIER_NOT_BEFORE], homographs, escapedString);
+
+                            if (phraseRuleModifier.RequirementType == RuleRequirementType.MODIFIER_NOT_BEFORE) {
+                                regex.AppendFormat(RegexPatterns.PATTERN_NOT_BEFORE, escapedString);
+                            }
+
+                            else {
+                                regex.Insert(0, string.Format(RegexPatterns.PATTERN_NOT_AFTER, escapedString));
+                            }
                         }
                         
                         break;
                 }
             }
 
-            AddWordMessageStartRequirement(ref homographs, ref pcreOptions, wordStartFlag, messageStartFlag);
-            AddWordMessageEndRequirement(ref homographs, ref pcreOptions, wordEndFlag, messageEndFlag);
+            AddWordMessageStartRequirement(regex, ref pcreOptions, wordStartFlag, messageStartFlag);
+            AddWordMessageEndRequirement(regex, ref pcreOptions, wordEndFlag, messageEndFlag);
 
-            return new PcreRegex(homographs, pcreOptions);
+            return new PcreRegex(regex.ToString(), pcreOptions);
+        }
+
+        public static void UpdateSubstringModifiers(Stack<PhraseSubstringModifier> remainingModifiers, HashSet<PhraseSubstringModifier> activeModifiers, ref int homographCount, int textIndex) {
+            int homographCountCopy = homographCount;
+
+            activeModifiers.RemoveWhere(x => {
+                if (x.SubstringEnd < textIndex) {
+                    switch (x.ModifierType) {
+                        case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                            homographCountCopy--;
+                            break;
+                    }
+
+                    return true;
+                }
+                
+                return false;
+            });
+
+            homographCount = homographCountCopy;
+
+            while (remainingModifiers.Count > 0 && remainingModifiers.Peek().SubstringStart <= textIndex) {
+                PhraseSubstringModifier substringModifier = remainingModifiers.Pop();
+
+                switch (substringModifier.ModifierType) {
+                    case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
+                    case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
+                    case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
+                    case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                        homographCount++;
+                        break;
+                }
+
+                activeModifiers.Add(substringModifier);
+            }
+        }
+
+        public static RegexToken[] GetTokens(string text) {
+            List<RegexToken> homographTokens = new List<RegexToken>(text.Length);
+            RegexToken homographToken = new RegexToken();
+
+            string character = null;
+            int characterIndex = 0;
+            int tokenLength = 1;
+
+            while (characterIndex < text.Length) {
+                if (character == null) {
+                    character = StringInfo.GetNextTextElement(text, characterIndex);
+                }
+
+                else {
+                    string nextCharacter = StringInfo.GetNextTextElement(text, characterIndex);
+
+                    if (nextCharacter == character) {
+                        tokenLength++;
+                    }
+
+                    else {
+                        homographToken.Character = character;
+                        homographToken.Length = tokenLength;
+
+                        homographTokens.Add(homographToken);
+
+                        character = nextCharacter;
+                        tokenLength = 1;
+                    }
+                }
+
+                characterIndex += character.Length;
+            }
+
+            homographToken.Character = character;
+            homographToken.Length = tokenLength;
+            homographTokens.Add(homographToken);
+
+            return homographTokens.ToArray();
         }
 
         public static string EscapeString(string text, bool insideCharacterClass = false) {
@@ -181,32 +386,47 @@ namespace DiscordBot6.Phrases {
             }
         }
 
-        public static void AddWordMessageStartRequirement(ref string text, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {
-            AddWordMessageRequirements(ref text, ref pcreOptions, PcreOptions.Anchored, wordFlag, messageFlag, RegexPatterns.PATTERNGROUP_WORDSTART);
-        }
-
-        public static void AddWordMessageEndRequirement(ref string text, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {
-            AddWordMessageRequirements(ref text, ref pcreOptions, PcreOptions.EndAnchored, wordFlag, messageFlag, RegexPatterns.PATTERNGROUP_WORDEND);
-        }
-
-        private static void AddWordMessageRequirements(ref string text, ref PcreOptions pcreOptions, PcreOptions anchorFlag, BoundaryFlags wordFlag, BoundaryFlags messageFlag, string[] patternGroup) {
+        public static void AddWordMessageStartRequirement(StringBuilder textBuilder, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {
             if (wordFlag == BoundaryFlags.REQUIRED && messageFlag == BoundaryFlags.BANNED) {
-                text = string.Format(patternGroup[1], text);
+                textBuilder.Insert(0, RegexPatterns.PATTERNGROUP_WORDSTART[1]);
             }
 
             else {
                 switch (wordFlag) {
                     case BoundaryFlags.REQUIRED:
-                        text = string.Format(patternGroup[0], text);
+                        textBuilder.Insert(0, RegexPatterns.PATTERNGROUP_WORDSTART[0]);
 
                         if (messageFlag == BoundaryFlags.REQUIRED) {
-                            pcreOptions |= anchorFlag;
+                            pcreOptions |= PcreOptions.Anchored;
                         }
 
                         break;
 
                     case BoundaryFlags.BANNED:
-                        text = string.Format(patternGroup[2], text);
+                        textBuilder.Insert(0, RegexPatterns.PATTERNGROUP_WORDSTART[2]);
+                        break;
+                }
+            }
+        }
+
+        public static void AddWordMessageEndRequirement(StringBuilder textBuilder, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {
+            if (wordFlag == BoundaryFlags.REQUIRED && messageFlag == BoundaryFlags.BANNED) {
+                textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[1]);
+            }
+
+            else {
+                switch (wordFlag) {
+                    case BoundaryFlags.REQUIRED:
+                        textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[0]);
+
+                        if (messageFlag == BoundaryFlags.REQUIRED) {
+                            pcreOptions |= PcreOptions.EndAnchored;
+                        }
+
+                        break;
+
+                    case BoundaryFlags.BANNED:
+                        textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[2]);
                         break;
                 }
             }

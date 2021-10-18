@@ -3,10 +3,9 @@ using System.Globalization;
 using System.Collections.Generic;
 
 using PCRE;
+using DiscordBot6.PhraseRules;
 
-using DiscordBot6.Homographs;
-
-namespace DiscordBot6.Phrases {
+namespace DiscordBot6.Helpers {
     public static class RegexPatterns {
         public const string PATTERN_WORDSTART                 = "(?:\\s|^)";
         public const string PATTERN_WORDSTART_NOTMESSAGESTART = "(?<!^)(?:\\s)";
@@ -56,7 +55,7 @@ namespace DiscordBot6.Phrases {
         };
     }
 
-    public static class PhraseRegexBuilder {
+    public static class RegexHelper {
         public enum BoundaryFlags : byte {
             NONE,
             REQUIRED,
@@ -84,7 +83,7 @@ namespace DiscordBot6.Phrases {
                 UpdateSubstringModifiers(remainingSubstringModifiers, activeSubstringModifiers, ref homographModifierCount, textIndex);
 
                 if (!homographCache.ContainsKey(regexToken.Character)) {
-                    homographCache.Add(regexToken.Character, HomographsHelper.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
+                    homographCache.Add(regexToken.Character, HomographHelper.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
                 }
 
                 HashSet<string> localHomographs = homographModifierCount > 0 ? new HashSet<string>(homographCache[regexToken.Character]) : homographCache[regexToken.Character];
@@ -96,19 +95,19 @@ namespace DiscordBot6.Phrases {
                             characterCountOverride = (int) substringModifier.ModifierType - (int) SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT + 1;
                             break;
 
-                        case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_NO:
                             localHomographs.Clear();
                             break;
 
-                        case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_ADD:
                             localHomographs.UnionWith(substringModifier.Data);
                             break;
 
-                        case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_REMOVE:
                             localHomographs.ExceptWith(substringModifier.Data);
                             break;
 
-                        case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_CUSTOM:
                             localHomographs.Clear();
                             localHomographs.UnionWith(substringModifier.Data);
                             break;
@@ -175,56 +174,56 @@ namespace DiscordBot6.Phrases {
             BoundaryFlags messageStartFlag = BoundaryFlags.NONE;
             BoundaryFlags messageEndFlag = BoundaryFlags.NONE;
 
-            foreach (PhraseRuleConstraint phraseRuleModifier in phraseRuleSet.Constraints) {
-                switch (phraseRuleModifier.RequirementType) {
-                    case RuleRequirementType.MODIFIER_WORD:
+            foreach (PhraseRuleConstraint phraseRuleModifier in phraseRuleSet.PhraseConstraints) {
+                switch (phraseRuleModifier.ConstraintType) {
+                    case PhraseRuleConstraintType.MODIFIER_WORD:
                         wordStartFlag = BoundaryFlags.REQUIRED;
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_WORDSTART:
+                    case PhraseRuleConstraintType.MODIFIER_WORDSTART:
                         wordStartFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_WORDEND:
+                    case PhraseRuleConstraintType.MODIFIER_WORDEND:
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_MESSAGE:
+                    case PhraseRuleConstraintType.MODIFIER_MESSAGE:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_MESSAGESTART:
+                    case PhraseRuleConstraintType.MODIFIER_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_MESSAGEEND:
+                    case PhraseRuleConstraintType.MODIFIER_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_CASESENSITIVE:
+                    case PhraseRuleConstraintType.MODIFIER_CASESENSITIVE:
                         pcreOptions &= ~PcreOptions.Caseless;
                         break;
 
-                    case RuleRequirementType.MODIFIER_NOT_WORDSTART:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_WORDSTART:
                         wordStartFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_NOT_WORDEND:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_WORDEND:
                         wordEndFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_NOT_MESSAGESTART:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_NOT_MESSAGEEND:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case RuleRequirementType.MODIFIER_NOT_BEFORE:
-                    case RuleRequirementType.MODIFIER_NOT_AFTER:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_BEFORE:
+                    case PhraseRuleConstraintType.MODIFIER_NOT_AFTER:
                         if (!textIsWrapped) {
                             regex.Insert(0, "(?:");
                             regex.Append(")");
@@ -235,7 +234,7 @@ namespace DiscordBot6.Phrases {
                         foreach (string bannedPhrase in phraseRuleModifier.Data) {
                             escapedString = EscapeString(bannedPhrase, false);
 
-                            if (phraseRuleModifier.RequirementType == RuleRequirementType.MODIFIER_NOT_BEFORE) {
+                            if (phraseRuleModifier.ConstraintType == PhraseRuleConstraintType.MODIFIER_NOT_BEFORE) {
                                 regex.AppendFormat(RegexPatterns.PATTERN_NOT_BEFORE, escapedString);
                             }
 
@@ -260,10 +259,10 @@ namespace DiscordBot6.Phrases {
             activeModifiers.RemoveWhere(x => {
                 if (x.SubstringEnd < textIndex) {
                     switch (x.ModifierType) {
-                        case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
-                        case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
-                        case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
-                        case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_NO:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_ADD:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_REMOVE:
+                        case SubstringModifierType.MODIFIER_HOMOGRAPHS_CUSTOM:
                             homographCountCopy--;
                             break;
                     }
@@ -280,10 +279,10 @@ namespace DiscordBot6.Phrases {
                 PhraseSubstringModifier substringModifier = remainingModifiers.Pop();
 
                 switch (substringModifier.ModifierType) {
-                    case SubstringModifierType.MODIFIER_NO_HOMOGRAPHS:
-                    case SubstringModifierType.MODIFIER_ADD_HOMOGRAPHS:
-                    case SubstringModifierType.MODIFIER_REMOVE_HOMOGRAPHS:
-                    case SubstringModifierType.MODIFIER_CUSTOM_HOMOGRAPHS:
+                    case SubstringModifierType.MODIFIER_HOMOGRAPHS_NO:
+                    case SubstringModifierType.MODIFIER_HOMOGRAPHS_ADD:
+                    case SubstringModifierType.MODIFIER_HOMOGRAPHS_REMOVE:
+                    case SubstringModifierType.MODIFIER_HOMOGRAPHS_CUSTOM:
                         homographCount++;
                         break;
                 }

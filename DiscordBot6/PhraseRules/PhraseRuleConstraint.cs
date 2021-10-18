@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace DiscordBot6.Phrases {
-    public enum RuleRequirementType {
+namespace DiscordBot6.PhraseRules {
+    public enum PhraseRuleConstraintType {
         MODIFIER_WORD,         // must be a standalone word
         MODIFIER_WORDSTART,    // must be at the start of a word
         MODIFIER_WORDEND,      // must be at the end of a word
@@ -19,19 +19,22 @@ namespace DiscordBot6.Phrases {
 
         MODIFIER_CASESENSITIVE, // default is case insensitive
 
-        MODIFIER_NOT_BOT,    // bot will not delete messages from other bots
-        MODIFIER_SELF_DELETE // bot will delete its own message if it matches the ruleset - default is that it won't
+        MODIFIER_NOT_BOT,  // bot will not match messages from other bots
+        MODIFIER_NOT_SELF, // bot will match its own message if it matches the ruleset - default is that it won't
+        MODIFIER_NOT_URL   // bot will not match messages inside of URLs
     }
 
     /// <summary>
     /// Defines a rule applied to all of a phrase
     /// </summary>
-    public sealed class PhraseRuleConstraint {
-        public RuleRequirementType RequirementType { get; }
-        public List<string> Data { get; } = new List<string>();
+    public struct PhraseRuleConstraint {
+        public PhraseRuleConstraintType ConstraintType { get; }
 
-        public PhraseRuleConstraint(RuleRequirementType requirementType) {
-            RequirementType = requirementType;
+        public IReadOnlyCollection<string> Data { get; }
+
+        public PhraseRuleConstraint(PhraseRuleConstraintType constraintType, IEnumerable<string> data) {
+            ConstraintType = constraintType;
+            Data = data as IReadOnlyCollection<string>;
         }
     }
 }

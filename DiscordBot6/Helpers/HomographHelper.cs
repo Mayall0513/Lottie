@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using DiscordBot6.PhraseRules;
+using System.Collections.Generic;
 
-using DiscordBot6.Phrases;
-
-namespace DiscordBot6.Homographs {
-    public static class HomographsHelper {
+namespace DiscordBot6.Helpers {
+    public static class HomographHelper {
         private static Dictionary<string, HashSet<string>> homographsTemplate = new Dictionary<string, HashSet<string>>();
         private static Dictionary<ulong, Dictionary<string, HashSet<string>>> serverTemplateCache = new Dictionary<ulong, Dictionary<string, HashSet<string>>>();
 
@@ -14,7 +13,7 @@ namespace DiscordBot6.Homographs {
             "{,{0}}"
         };
 
-        static HomographsHelper() {
+        static HomographHelper() { // this needs finishing!
             homographsTemplate.Add("a", new HashSet<string>(new[] { "🇦", "4"}));
             homographsTemplate.Add("b", new HashSet<string>(new[] { "🇧", "6" }));
             homographsTemplate.Add("c", new HashSet<string>(new[] { "🇨" }));

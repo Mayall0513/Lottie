@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Collections.Generic;
 
 using Discord;
@@ -7,50 +6,64 @@ using Discord.WebSocket;
 
 using PCRE;
 
-using DiscordBot6.Rules;
+using DiscordBot6.ServerRules;
+using DiscordBot6.Helpers;
 
-namespace DiscordBot6.Phrases {
+namespace DiscordBot6.PhraseRules {
     public sealed class PhraseRule : ServerRule {
+        private static PcreRegex urlRegex;
+
         public string Text { get; }
 
-        public IReadOnlyCollection<PhraseRuleConstraint> Constraints { get; }
+        public IReadOnlyCollection<PhraseRuleConstraint> PhraseConstraints { get; }
         public IReadOnlyCollection<PhraseHomographOverride> HomographOverrides { get; }
         public IReadOnlyCollection<PhraseSubstringModifier> SubstringModifiers { get; }
 
         public bool ManualPattern { get; }
-        public string Pattern { get; }
+        public string Pattern => regex.PatternInfo.PatternString;
 
         private PcreRegex regex;
 
-        private bool botDelete = true;
-        private bool selfDelete = false;
+        private bool matchBots = true;
+        private bool matchSelf = false;
+        private bool matchURLs = true;
 
-        public PhraseRule(ulong serverId, string text, ServerRuleConstraint[] serverRuleConstraints, PhraseRuleConstraint[] phraseRuleConstraints, PhraseHomographOverride[] homographOverrides, PhraseSubstringModifier[] substringModifiers) : base(serverId, serverRuleConstraints) {
+        static PhraseRule() {
+            urlRegex = new PcreRegex(@"(?:^|\s)\S*https?://\S*$", PcreOptions.Compiled | PcreOptions.Caseless);
+        }
+
+        public PhraseRule(ulong serverId, string text, IEnumerable<ServerRuleConstraint> serverRuleConstraints, IEnumerable<PhraseRuleConstraint> phraseRuleConstraints, IEnumerable<PhraseHomographOverride> homographOverrides, IEnumerable<PhraseSubstringModifier> substringModifiers) : base(serverId, serverRuleConstraints) {
             Text = text;
-            Constraints = phraseRuleConstraints;
-            HomographOverrides = homographOverrides;
+            PhraseConstraints = phraseRuleConstraints as IReadOnlyCollection<PhraseRuleConstraint>;
+            HomographOverrides = homographOverrides as IReadOnlyCollection<PhraseHomographOverride>;
+            SubstringModifiers = substringModifiers.OrderByDescending(modifier => modifier.SubstringStart) as IReadOnlyCollection<PhraseSubstringModifier>;
 
-            Array.Sort(substringModifiers);
-            SubstringModifiers = substringModifiers;
-
-            regex = PhraseRegexBuilder.CreateRegex(this);
-            Pattern = regex.PatternInfo.PatternString;
-
+            regex = RegexHelper.CreateRegex(this);
             DeriveMetaInformation();
         }
 
-        public PhraseRule(ulong serverId, string pattern, PcreOptions pcreOptions, ServerRuleConstraint[] serverRuleConstraints, PhraseRuleConstraint[] phraseRuleConstraints) : base(serverId, serverRuleConstraints) {
+        public PhraseRule(ulong serverId, string pattern, PcreOptions pcreOptions, IEnumerable<ServerRuleConstraint> serverRuleConstraints, IEnumerable<PhraseRuleConstraint> phraseRuleConstraints) : base(serverId, serverRuleConstraints) {
             ManualPattern = true;
-            Constraints = phraseRuleConstraints;
+            PhraseConstraints = phraseRuleConstraints as IReadOnlyCollection<PhraseRuleConstraint>;
 
             regex = new PcreRegex(pattern, pcreOptions);
-            Pattern = pattern;
-
             DeriveMetaInformation();
         }
 
         public bool Matches(string text) {
-            return regex.IsMatch(text);
+            if (matchURLs) {
+                return regex.IsMatch(text);
+            }
+
+            else {
+                foreach (PcreMatch match in regex.Matches(text)) {
+                    if (match.Success && !urlRegex.IsMatch(text.Substring(0, match.Index))) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         public bool CanApply(SocketMessage socketMessage) {
@@ -58,15 +71,15 @@ namespace DiscordBot6.Phrases {
             SocketGuildUser guildUser = socketMessage.Author as SocketGuildUser;
             IReadOnlyCollection<ulong> roleIds = guildUser.Roles.Select(x => x.Id).ToArray();
 
-            if (!CanApply(socketMessage.Author.Id, guildChannel.Id, roleIds)) {
+            if (!base.CanApply(socketMessage.Author.Id, guildChannel.Id, roleIds)) { // check to see if the server rule constraints are met
                 return false;
             }
 
-            if (!botDelete && socketMessage.Source == MessageSource.Bot) {
+            if (!matchBots && socketMessage.Source == MessageSource.Bot) { // we're not allowed to check bots
                 return false;
             }
 
-            if (!selfDelete && socketMessage.Author.Id == Program.BotAccountId) {
+            if (!matchSelf && socketMessage.Author.Id == Program.BotAccountId) { // we're not allowed to check ourselves
                 return false;
             }
 
@@ -74,40 +87,21 @@ namespace DiscordBot6.Phrases {
         }
 
         private void DeriveMetaInformation() {
-            foreach (PhraseRuleConstraint phraseRuleModifier in Constraints) {
-                switch (phraseRuleModifier.RequirementType) {
-                    case RuleRequirementType.MODIFIER_NOT_BOT:
-                        botDelete = false;
+            foreach (PhraseRuleConstraint phraseRuleModifier in PhraseConstraints) {
+                switch (phraseRuleModifier.ConstraintType) {
+                    case PhraseRuleConstraintType.MODIFIER_NOT_BOT:
+                        matchBots = false;
                         break;
 
-                    case RuleRequirementType.MODIFIER_SELF_DELETE:
-                        selfDelete = true;
+                    case PhraseRuleConstraintType.MODIFIER_NOT_SELF:
+                        matchSelf = true;
+                        break;
+
+                    case PhraseRuleConstraintType.MODIFIER_NOT_URL:
+                        matchURLs = false;
                         break;
                 }
             }
-        }
-    }
-
-    public sealed class PhraseRuleModel {
-        public string Text { get; set; }
-        public bool ManualPattern { get; set; }
-        public string Pattern { get; set; }
-        public long? PcreOptions { get; set; }
-        public bool BotDelete { get; set; }
-        public bool SelfDelete { get; set; }
-
-        public Dictionary<ulong, ServerRuleConstraint> ServerRules { get; set; } = new Dictionary<ulong, ServerRuleConstraint>();
-        public Dictionary<ulong, PhraseRuleConstraint> Constraints { get; set; } = new Dictionary<ulong, PhraseRuleConstraint>();
-        public Dictionary<ulong, PhraseHomographOverride> HomographOverrides { get; set; } = new Dictionary<ulong, PhraseHomographOverride>();
-        public Dictionary<ulong, PhraseSubstringModifier> SubstringModifiers { get; set; } = new Dictionary<ulong, PhraseSubstringModifier>();
-
-        public PhraseRuleModel(string text, bool manualPattern, string pattern, long pcreOptions, bool botDelete, bool selfDelete) {
-            Text = text;
-            ManualPattern = manualPattern;
-            Pattern = pattern;
-            PcreOptions = pcreOptions;
-            BotDelete = botDelete;
-            SelfDelete = selfDelete;
         }
     }
 }

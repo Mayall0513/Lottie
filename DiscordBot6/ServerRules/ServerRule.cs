@@ -2,12 +2,12 @@
 using System.Linq;
 using System.Collections.Generic;
 
-namespace DiscordBot6.Rules {
+namespace DiscordBot6.ServerRules {
     public class ServerRule {
-        public ulong ServerId { get; private set; }
-        public DateTime CreationTime { get; private set; }
+        public ulong ServerId { get;  }
+        public DateTime CreationTime { get; }
 
-        public IReadOnlyCollection<ServerRuleConstraint> Constriants { get; private set; }
+        public IReadOnlyCollection<ServerRuleConstraint> RuleConstriants { get; }
 
         protected IReadOnlyCollection<ulong> userConstraints = null;
         protected bool userWhitelist = false;
@@ -37,7 +37,7 @@ namespace DiscordBot6.Rules {
             }
 
             if (channelConstraints != null) { // there are channel constraints
-                if (channelWhitelist) { // chanel whitelist
+                if (channelWhitelist) { // channel whitelist
                     if (!channelConstraints.Contains(userId)) {
                         return false;
                     }
@@ -103,53 +103,53 @@ namespace DiscordBot6.Rules {
             return true;
         }
 
-        protected ServerRule(ulong serverId, ServerRuleConstraint[] contraints) {
+        protected ServerRule(ulong serverId, IEnumerable<ServerRuleConstraint> contraints) {
             ServerId = serverId;
-            Constriants = contraints;
+            RuleConstriants = contraints as IReadOnlyCollection<ServerRuleConstraint>;
 
             DeriveMetaInformation();
         }
 
         private void DeriveMetaInformation() {
-            foreach (ServerRuleConstraint constraint in Constriants) {
+            foreach (ServerRuleConstraint constraint in RuleConstriants) {
                 switch (constraint.ConstraintType) {
-                    case RuleConstraintType.CONSTRAINT_USER_WHITELIST:
-                        userConstraints = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_USER_WHITELIST:
+                        userConstraints = constraint.Data;
                         userWhitelist = true;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_USER_BLACKLIST:
-                        userConstraints = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_USER_BLACKLIST:
+                        userConstraints = constraint.Data;
                         userWhitelist = false;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_CHANNEL_WHITELIST:
-                        channelConstraints = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_CHANNEL_WHITELIST:
+                        channelConstraints = constraint.Data;
                         channelWhitelist = true;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_CHANNEL_BLACKLIST:
-                        channelConstraints = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_CHANNEL_BLACKLIST:
+                        channelConstraints = constraint.Data;
                         channelWhitelist = false;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_ROLE_WHITELIST_ALL:
-                        roleWhitelist = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_ROLE_WHITELIST_ALL:
+                        roleWhitelist = constraint.Data;
                         roleWhitelistAll = true;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_ROLE_WHITELIST_ANY:
-                        roleWhitelist = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_ROLE_WHITELIST_ANY:
+                        roleWhitelist = constraint.Data;
                         roleWhitelistAll = false;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_ROLE_BLACKLIST_ALL:
-                        roleBlacklist = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_ROLE_BLACKLIST_ALL:
+                        roleBlacklist = constraint.Data;
                         roleBlacklistAll = true;
                         break;
 
-                    case RuleConstraintType.CONSTRAINT_ROLE_BLACKLIST_ANY:
-                        roleBlacklist = constraint.Constraints;
+                    case ServerRuleConstraintType.CONSTRAINT_ROLE_BLACKLIST_ANY:
+                        roleBlacklist = constraint.Data;
                         roleBlacklistAll = false;
                         break;
                 }

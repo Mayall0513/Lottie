@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Configuration;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using Discord;
 using Discord.WebSocket;
 
-using DiscordBot6.Phrases;
+using DiscordBot6.PhraseRules;
 
 namespace DiscordBot6 {
     public static class Program {
@@ -24,7 +25,7 @@ namespace DiscordBot6 {
         }
 
         private static async void CreateBot() {
-            await discordClient.LoginAsync(TokenType.Bot, "ODYyNDI2MDQ0MzA0MTk1NTg0.YOYK2A.bLWPJzyLFu-3Q9s_RFPonIItOC8", true);
+            await discordClient.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
             await discordClient.StartAsync();
         }
 

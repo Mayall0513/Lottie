@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace DiscordBot6.Rules {
-    public enum RuleConstraintType {
+namespace DiscordBot6.ServerRules {
+    public enum ServerRuleConstraintType {
         CONSTRAINT_USER_WHITELIST,
         CONSTRAINT_USER_BLACKLIST,
 
@@ -14,12 +14,14 @@ namespace DiscordBot6.Rules {
         CONSTRAINT_ROLE_BLACKLIST_ANY,
     };
 
-    public sealed class ServerRuleConstraint {
-        public RuleConstraintType ConstraintType { get; }
-        public List<ulong> Constraints { get; } = new List<ulong>();
+    public struct ServerRuleConstraint {
+        public ServerRuleConstraintType ConstraintType { get; }
 
-        public ServerRuleConstraint(RuleConstraintType constraintType) {
+        public IReadOnlyCollection<ulong> Data { get; }
+
+        public ServerRuleConstraint(ServerRuleConstraintType constraintType, IEnumerable<ulong> data) {
             ConstraintType = constraintType;
+            Data = data as IReadOnlyCollection<ulong>;
         }
     }
 }

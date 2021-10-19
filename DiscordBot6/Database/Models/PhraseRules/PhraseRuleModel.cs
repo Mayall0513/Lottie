@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DiscordBot6.Database.Models {
+namespace DiscordBot6.Database.Models.PhraseRules {
     public sealed class PhraseRuleModel {
         public string Text { get; set; }
         public bool ManualPattern { get; set; }

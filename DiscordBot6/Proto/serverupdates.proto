@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package updates;
+
+service ServerUpdates {
+	rpc NotifyServerUpdated(ServerUpdated) returns (google.protobuf.Empty);
+}
+
+message ServerUpdated {
+	uint64 serverId = 1;
+}

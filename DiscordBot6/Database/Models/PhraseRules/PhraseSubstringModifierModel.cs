@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DiscordBot6.Database.Models {
+namespace DiscordBot6.Database.Models.PhraseRules {
     public sealed class PhraseSubstringModifierModel {
         public int ModifierType { get; set; }
         public int SubstringStart { get; set; }

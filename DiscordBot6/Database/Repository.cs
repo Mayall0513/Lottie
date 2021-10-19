@@ -4,15 +4,16 @@ using System.Configuration;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-using DiscordBot6.ServerRules;
 using DiscordBot6.PhraseRules;
-using DiscordBot6.Database.Models;
+using DiscordBot6.Database.Models.PhraseRules;
 
 using MySqlConnector;
 
 using Dapper;
-
-using PCRE;
+using System.Collections.Concurrent;
+using DiscordBot6.Users;
+using DiscordBot6.Database.Models;
+using System.Linq;
 
 namespace DiscordBot6.Database {
     public static class Repository {
@@ -49,30 +50,40 @@ namespace DiscordBot6.Database {
                 }
 
                 foreach (PhraseRuleModel phraseRuleModel in phraseRuleModels.Values) {
-                    phraseRules.Add(CreatePhraseRuleFromModel(serverId, phraseRuleModel));
+                    phraseRules.Add(PhraseRule.FromModel(serverId, phraseRuleModel));
                 }
             }
 
             return phraseRules.ToArray();
         }
 
-        public static PhraseRule CreatePhraseRuleFromModel(ulong serverId, PhraseRuleModel ruleModel) {
-            IEnumerable<ServerRuleConstraint> serverRuleConstraints = ConvertValues(ruleModel.ServerRules.Values, x => new ServerRuleConstraint((ServerRuleConstraintType) x.ConstraintType, x.Data));
-            IEnumerable<PhraseRuleConstraint> phraseRuleConstraints = ConvertValues(ruleModel.PhraseRules.Values, x => new PhraseRuleConstraint((PhraseRuleConstraintType) x.ConstraintType, x.Data));
-
-            if (ruleModel.ManualPattern) {
-                return new PhraseRule(serverId, ruleModel.Pattern, (PcreOptions) (ruleModel.PcreOptions ?? 0), serverRuleConstraints, phraseRuleConstraints);
-            }
-
-            else {
-                IEnumerable<PhraseHomographOverride> homographOverrides = ConvertValues(ruleModel.HomographOverrides.Values, x => new PhraseHomographOverride((HomographOverrideType) x.OverrideType, x.Pattern, x.Homographs));
-                IEnumerable<PhraseSubstringModifier> substringModifiers = ConvertValues(ruleModel.SubstringModifiers.Values, x => new PhraseSubstringModifier((SubstringModifierType) x.ModifierType, x.SubstringStart, x.SubstringEnd, x.Data));
-
-                return new PhraseRule(serverId, ruleModel.Text, serverRuleConstraints, phraseRuleConstraints, homographOverrides, substringModifiers);
+        public static async Task AddUserSettings(ulong serverId, ulong userId, UserSettings userSettings) {
+            using (MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString)) {
+                await dbConnection.ExecuteAsync("sp_AddUserSettings", new { serverId, userId, userSettings.MutePersisted, userSettings.DeafenPersisted }, commandType: CommandType.StoredProcedure);
             }
         }
 
-        private static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) { // we need this because the models are value types, we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason
+        public static async Task UpdateUserSettings(ulong serverId, ulong userId, UserSettings userSettings) {
+            using (MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString)) {
+                await dbConnection.ExecuteAsync("sp_UpdateUserSettings", new { serverId, userId, userSettings.MutePersisted, userSettings.DeafenPersisted }, commandType: CommandType.StoredProcedure);
+            }
+        }
+
+        public static async Task<UserSettings> GetUserSettings(ulong serverId, ulong userId) {
+            using (MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString)) {
+                UserSettingsModel userSettingsModel = await dbConnection.QuerySingleOrDefaultAsync<UserSettingsModel>("sp_GetUserSettings", new { serverId, userId }, commandType: CommandType.StoredProcedure);
+
+                if (userSettingsModel == null) {
+                    return null;
+                }
+
+                else {
+                    return UserSettings.FromModel(userSettingsModel);
+                }
+            }
+        }
+
+        public static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) { // we need this because the models are value types, we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason
             O[] outputArray = new O[collection.Count];
             int index = 0;
 

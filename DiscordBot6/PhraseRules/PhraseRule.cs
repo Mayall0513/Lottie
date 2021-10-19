@@ -6,8 +6,10 @@ using Discord.WebSocket;
 
 using PCRE;
 
-using DiscordBot6.ServerRules;
 using DiscordBot6.Helpers;
+using DiscordBot6.Database;
+using DiscordBot6.ServerRules;
+using DiscordBot6.Database.Models.PhraseRules;
 
 namespace DiscordBot6.PhraseRules {
     public sealed class PhraseRule : ServerRule {
@@ -48,6 +50,22 @@ namespace DiscordBot6.PhraseRules {
 
             regex = new PcreRegex(pattern, pcreOptions);
             DeriveMetaInformation();
+        }
+
+        public static PhraseRule FromModel(ulong serverId, PhraseRuleModel phraseRuleModel) {
+            IEnumerable<ServerRuleConstraint> serverRuleConstraints = Repository.ConvertValues(phraseRuleModel.ServerRules.Values, x => new ServerRuleConstraint((ServerRuleConstraintType)x.ConstraintType, x.Data));
+            IEnumerable<PhraseRuleConstraint> phraseRuleConstraints = Repository.ConvertValues(phraseRuleModel.PhraseRules.Values, x => new PhraseRuleConstraint((PhraseRuleConstraintType)x.ConstraintType, x.Data));
+
+            if (phraseRuleModel.ManualPattern) {
+                return new PhraseRule(serverId, phraseRuleModel.Pattern, (PcreOptions) (phraseRuleModel.PcreOptions ?? 0), serverRuleConstraints, phraseRuleConstraints);
+            }
+
+            else {
+                IEnumerable<PhraseHomographOverride> homographOverrides = Repository.ConvertValues(phraseRuleModel.HomographOverrides.Values, x => new PhraseHomographOverride((HomographOverrideType)x.OverrideType, x.Pattern, x.Homographs));
+                IEnumerable<PhraseSubstringModifier> substringModifiers = Repository.ConvertValues(phraseRuleModel.SubstringModifiers.Values, x => new PhraseSubstringModifier((SubstringModifierType)x.ModifierType, x.SubstringStart, x.SubstringEnd, x.Data));
+
+                return new PhraseRule(serverId, phraseRuleModel.Text, serverRuleConstraints, phraseRuleConstraints, homographOverrides, substringModifiers);
+            }
         }
 
         public bool Matches(string text) {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DiscordBot6.Database.Models {
+namespace DiscordBot6.Database.Models.PhraseRules {
     public sealed class PhraseHomographOverrideModel {
         public int OverrideType { get; set; }
         public string Pattern { get; set; }

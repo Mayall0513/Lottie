@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using DiscordBot6.Database.Models;
+﻿using System.Collections.Generic;
 
 namespace DiscordBot6.Users {
     public sealed class UserSettings {
         public bool MutePersisted { get; set; }
         public bool DeafenPersisted { get; set; }
-        
+
+        public HashSet<ulong> RolesPersisted { get; set; } = new HashSet<ulong>();
+
         public UserSettings(bool mutePersisted, bool deafenPersisted) {
             MutePersisted = mutePersisted;
             DeafenPersisted = deafenPersisted;
-        }
-
-        public static UserSettings FromModel(UserSettingsModel userSettingsModel) {
-            return new UserSettings(userSettingsModel.MutePersisted, userSettingsModel.DeafenPersisted);
         }
     }
 }

@@ -1,9 +1,8 @@
-﻿using System.Text;
-using System.Globalization;
-using System.Collections.Generic;
-
+﻿using DiscordBot6.PhraseRules;
 using PCRE;
-using DiscordBot6.PhraseRules;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 
 namespace DiscordBot6.Helpers {
     public static class RegexPatterns {

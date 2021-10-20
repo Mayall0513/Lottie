@@ -1,9 +1,6 @@
-﻿using System.Threading.Tasks;
-
-using Google.Protobuf.WellKnownTypes;
-
+﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-
+using System.Threading.Tasks;
 using Updates;
 
 namespace DiscordBot6.Proto {

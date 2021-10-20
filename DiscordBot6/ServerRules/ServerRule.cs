@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DiscordBot6.ServerRules {
     public class ServerRule {
-        public ulong ServerId { get;  }
+        public ulong ServerId { get; }
         public DateTime CreationTime { get; }
 
         public IReadOnlyCollection<ServerRuleConstraint> RuleConstriants { get; }

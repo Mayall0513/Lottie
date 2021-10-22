@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot6.ContingentRoles;
+using DiscordBot6.PhraseRules;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
@@ -17,6 +18,8 @@ namespace DiscordBot6 {
             client = new DiscordSocketClient();
 
             client.Ready += Client_Ready;
+            client.MessageReceived += Client_MessageReceived;
+            client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
             client.GuildMemberUpdated += Client_GuildMemberUpdated;
             client.UserJoined += Client_UserJoined;
 
@@ -28,6 +31,64 @@ namespace DiscordBot6 {
         private static Task Client_Ready() {
             BotAccountId = client.CurrentUser.Id;
             return Task.CompletedTask;
+        }
+
+        private static async Task Client_MessageReceived(SocketMessage socketMessage) {
+            SocketGuildChannel socketGuildChannel = (socketMessage.Channel as SocketGuildChannel);
+            Server server = await Server.GetServerAsync(socketGuildChannel.Guild.Id);
+            PhraseRule[] phraseRules = await server.GetPhraseRuleSetsAsync();
+
+            // this is unfinished - i want to do a thing where the user can decide what happens. 
+            // just a placeholder for the moment!
+            foreach (PhraseRule phraseRule in phraseRules) {
+                if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
+                    await socketMessage.Channel.DeleteMessageAsync(socketMessage);
+                    break;
+                }
+            }
+        }
+
+        private static async Task Client_UserVoiceStateUpdated(SocketUser socketUser, SocketVoiceState beforeVoiceState, SocketVoiceState afterVoiceState) {
+            if (afterVoiceState.VoiceChannel == null) { // they just left
+                return; // there's nothing we want to do if a user leaves the channel
+            }
+
+            SocketGuildUser socketGuildUser = (socketUser as SocketGuildUser);
+            Server server = await Server.GetServerAsync(socketGuildUser.Guild.Id);
+
+            if ((!server.AutoMutePersist && !server.AutoDeafenPersist) || server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this server does not want automatic mute or deafen persist OR this is an event that we triggered and should ignore
+                return;
+            }
+
+            if (beforeVoiceState.VoiceChannel == null) { // they just joined
+                User user = await server.GetUserAsync(socketUser.Id);
+
+                if (user != null) {
+                    if (!afterVoiceState.IsMuted && user.MutePersisted) { // user is not muted and should be
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+                    }
+
+                    if (!afterVoiceState.IsDeafened && user.DeafenPersisted) { // user is not deafened and should be
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
+                    }
+                }
+            }
+
+            else { // something else happened
+                bool muteChanged = beforeVoiceState.IsMuted != afterVoiceState.IsMuted;
+                bool deafenChanged = beforeVoiceState.IsDeafened != afterVoiceState.IsDeafened;
+
+                if ((server.AutoMutePersist && muteChanged) || (server.AutoDeafenPersist && deafenChanged)) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
+                    User userSettings = await server.GetUserAsync(socketUser.Id);
+
+                    userSettings.MutePersisted = afterVoiceState.IsMuted;
+                    userSettings.DeafenPersisted = afterVoiceState.IsDeafened;
+
+                    await server.SetUserSettingsAsync(socketGuildUser.Id, userSettings);
+                }
+            }
         }
 
         private static async Task Client_GuildMemberUpdated(SocketGuildUser beforeUser, SocketGuildUser afterUser) {

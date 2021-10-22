@@ -4,7 +4,6 @@ using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database.Models;
 using DiscordBot6.Database.Models.ContingentRoles;
 using DiscordBot6.Database.Models.PhraseRules;
-using DiscordBot6.Database.Models.ServerRules;
 using DiscordBot6.PhraseRules;
 using MySqlConnector;
 using System;
@@ -41,15 +40,30 @@ namespace DiscordBot6.Database {
                     phraseRuleModel = phraseRuleModels[phraseRuleModel.Id];
                 }
 
-                if (phraseRuleElement.ServerConstraintType != null) {
-                    ServerRuleConstraintModel serverRuleConstraintModel = new ServerRuleConstraintModel() { Id = phraseRuleElement.ServerConstraintId, ConstraintType = phraseRuleElement.ServerConstraintType };
+                if (phraseRuleElement.ChannelId != null) {
+                    phraseRuleModel.ChannelConstraints.Whitelist = phraseRuleElement.ChannelConstraintWhitelist;
+                    phraseRuleModel.ChannelConstraints.Requirements.Add(phraseRuleElement.ChannelId);
+                }
 
-                    phraseRuleModel.ServerRules.TryAdd(serverRuleConstraintModel.Id, serverRuleConstraintModel);
-                    phraseRuleModel.ServerRules[serverRuleConstraintModel.Id].Data.Add(phraseRuleElement.ServerConstraintData);
+                if (phraseRuleElement.UserId != null) {
+                    phraseRuleModel.UserConstraints.Whitelist = phraseRuleElement.UserConstraintWhitelist;
+                    phraseRuleModel.UserConstraints.Requirements.Add(phraseRuleElement.UserId);
+                }
+
+                if (phraseRuleElement.RoleId != null) {
+                    if (phraseRuleElement.Whitelist) {
+                        phraseRuleModel.RoleConstraints.WhitelistStrict = phraseRuleElement.RoleConstraintWhitelistStrict;
+                        phraseRuleModel.RoleConstraints.WhitelistRequirements.Add(phraseRuleElement.RoleId);
+                    }
+
+                    else {
+                        phraseRuleModel.RoleConstraints.BlacklistStrict = phraseRuleElement.RoleConstraintBlacklistStrict;
+                        phraseRuleModel.RoleConstraints.BlacklistRequirements.Add(phraseRuleElement.RoleId);
+                    }
                 }
 
                 if (phraseRuleElement.PhraseConstraintType != null) {
-                    PhraseRuleConstraintModel phraseRuleConstraintModel = new PhraseRuleConstraintModel() { Id = phraseRuleElement.PhraseConstraintId, ConstraintType = phraseRuleElement.PhraseConstraintType };
+                    PhraseRuleModifierModel phraseRuleConstraintModel = new PhraseRuleModifierModel() { Id = phraseRuleElement.ModifierId, ConstraintType = phraseRuleElement.ModifierType };
 
                     phraseRuleModel.PhraseRules.TryAdd(phraseRuleConstraintModel.Id, phraseRuleConstraintModel);
                     phraseRuleModel.PhraseRules[phraseRuleConstraintModel.Id].Data.Add(phraseRuleElement.PhraseConstraintData);
@@ -63,7 +77,7 @@ namespace DiscordBot6.Database {
                 }
 
                 if (phraseRuleElement.ModifierType != null) {
-                    PhraseSubstringModifierModel phraseSubstringModifierModel = new PhraseSubstringModifierModel() { Id = phraseRuleElement.SubstringId, ModifierType = phraseRuleElement.ModifierType, SubstringStart = phraseRuleElement.SubstringStart, SubstringEnd = phraseRuleElement.SubstringEnd };
+                    PhraseSubstringModifierModel phraseSubstringModifierModel = new PhraseSubstringModifierModel() { Id = phraseRuleElement.SubstringId, ModifierType = phraseRuleElement.SubstringModifierType, SubstringStart = phraseRuleElement.SubstringStart, SubstringEnd = phraseRuleElement.SubstringEnd };
 
                     phraseRuleModel.SubstringModifiers.TryAdd(phraseSubstringModifierModel.Id, phraseSubstringModifierModel);
                     phraseRuleModel.SubstringModifiers[phraseSubstringModifierModel.Id].Data.Add(phraseRuleElement.SubstringData);
@@ -74,13 +88,12 @@ namespace DiscordBot6.Database {
                 phraseRules.Add(phraseRuleModel.CreateConcrete());
             }
 
-
             return phraseRules.ToArray();
         }
 
         public static async Task AddOrUpdateUserAsync(User user) {
-            using MySqlConnection connction = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            await connction.ExecuteAsync("sp_AddOrUpdate_User", new { ServerId = user.Parent.Id, user.Id, user.MutePersisted, user.DeafenPersisted }, commandType: CommandType.StoredProcedure);
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await connection.ExecuteAsync("sp_AddOrUpdate_User", new { ServerId = user.Parent.Id, user.Id, user.MutePersisted, user.DeafenPersisted }, commandType: CommandType.StoredProcedure);
         }
 
         public static async Task<User> GetUserAsync(ulong serverId, ulong userId) {

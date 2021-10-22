@@ -66,7 +66,7 @@ namespace DiscordBot6.Helpers {
             public int Length { get; set; }
         }
 
-        public static PcreRegex CreateRegex(PhraseRule phraseRuleSet) {
+        public static PcreRegex CreateRegex(string text, ulong serverId, PhraseRulePhraseModifiers phraseRulePhraseModifiers) {
             PcreOptions pcreOptions = PcreOptions.Compiled | PcreOptions.Caseless | PcreOptions.Unicode;
             StringBuilder regex = new StringBuilder();
 
@@ -78,11 +78,11 @@ namespace DiscordBot6.Helpers {
             int textIndex = 1;
             int homographModifierCount = 0;
 
-            foreach (RegexToken regexToken in GetTokens(phraseRuleSet.Text)) {
+            foreach (RegexToken regexToken in GetTokens(text)) {
                 UpdateSubstringModifiers(remainingSubstringModifiers, activeSubstringModifiers, ref homographModifierCount, textIndex);
 
                 if (!homographCache.ContainsKey(regexToken.Character)) {
-                    homographCache.Add(regexToken.Character, HomographHelper.GetHomographs(regexToken.Character, phraseRuleSet.ServerId, phraseRuleSet.HomographOverrides));
+                    homographCache.Add(regexToken.Character, HomographHelper.GetHomographs(regexToken.Character, serverId, phraseRulePhraseModifiers.HomographOverrides));
                 }
 
                 HashSet<string> localHomographs = homographModifierCount > 0 ? new HashSet<string>(homographCache[regexToken.Character]) : homographCache[regexToken.Character];
@@ -173,56 +173,56 @@ namespace DiscordBot6.Helpers {
             BoundaryFlags messageStartFlag = BoundaryFlags.NONE;
             BoundaryFlags messageEndFlag = BoundaryFlags.NONE;
 
-            foreach (PhraseRuleConstraint phraseRuleModifier in phraseRuleSet.PhraseConstraints) {
-                switch (phraseRuleModifier.ConstraintType) {
-                    case PhraseRuleConstraintType.MODIFIER_WORD:
+            foreach (PhraseRuleModifier phraseRuleModifier in phraseRulePhraseModifiers.Modifiers) {
+                switch (phraseRuleModifier.ModifierType) {
+                    case PhraseRuleModifierType.MODIFIER_WORD:
                         wordStartFlag = BoundaryFlags.REQUIRED;
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_WORDSTART:
+                    case PhraseRuleModifierType.MODIFIER_WORDSTART:
                         wordStartFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_WORDEND:
+                    case PhraseRuleModifierType.MODIFIER_WORDEND:
                         wordEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_MESSAGE:
+                    case PhraseRuleModifierType.MODIFIER_MESSAGE:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_MESSAGESTART:
+                    case PhraseRuleModifierType.MODIFIER_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_MESSAGEEND:
+                    case PhraseRuleModifierType.MODIFIER_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.REQUIRED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_CASESENSITIVE:
+                    case PhraseRuleModifierType.MODIFIER_CASESENSITIVE:
                         pcreOptions &= ~PcreOptions.Caseless;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_NOT_WORDSTART:
+                    case PhraseRuleModifierType.MODIFIER_NOT_WORDSTART:
                         wordStartFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_NOT_WORDEND:
+                    case PhraseRuleModifierType.MODIFIER_NOT_WORDEND:
                         wordEndFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_NOT_MESSAGESTART:
+                    case PhraseRuleModifierType.MODIFIER_NOT_MESSAGESTART:
                         messageStartFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_NOT_MESSAGEEND:
+                    case PhraseRuleModifierType.MODIFIER_NOT_MESSAGEEND:
                         messageEndFlag = BoundaryFlags.BANNED;
                         break;
 
-                    case PhraseRuleConstraintType.MODIFIER_NOT_BEFORE:
-                    case PhraseRuleConstraintType.MODIFIER_NOT_AFTER:
+                    case PhraseRuleModifierType.MODIFIER_NOT_BEFORE:
+                    case PhraseRuleModifierType.MODIFIER_NOT_AFTER:
                         if (!textIsWrapped) {
                             regex.Insert(0, "(?:");
                             regex.Append(")");
@@ -233,7 +233,7 @@ namespace DiscordBot6.Helpers {
                         foreach (string bannedPhrase in phraseRuleModifier.Data) {
                             escapedString = EscapeString(bannedPhrase, false);
 
-                            if (phraseRuleModifier.ConstraintType == PhraseRuleConstraintType.MODIFIER_NOT_BEFORE) {
+                            if (phraseRuleModifier.ModifierType == PhraseRuleModifierType.MODIFIER_NOT_BEFORE) {
                                 regex.AppendFormat(RegexPatterns.PATTERN_NOT_BEFORE, escapedString);
                             }
 

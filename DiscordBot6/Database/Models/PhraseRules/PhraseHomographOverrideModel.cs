@@ -7,7 +7,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public int OverrideType { get; set; }
         public string Pattern { get; set; }
 
-        public List<string> Homographs { get; set; } = new List<string>();
+        public List<string> Homographs { get; } = new List<string>();
 
         public PhraseHomographOverride CreateConcrete() {
             return new PhraseHomographOverride((HomographOverrideType)OverrideType, Pattern, Homographs);

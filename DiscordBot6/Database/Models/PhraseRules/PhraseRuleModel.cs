@@ -1,6 +1,5 @@
-﻿using DiscordBot6.Database.Models.ServerRules;
+﻿using DiscordBot6.Database.Models.Constraints;
 using DiscordBot6.PhraseRules;
-using DiscordBot6.ServerRules;
 using PCRE;
 using System.Collections.Generic;
 
@@ -14,24 +13,30 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public string Pattern { get; set; }
         public long? PcreOptions { get; set; }
 
-        public Dictionary<ulong, ServerRuleConstraintModel> ServerRules { get; set; } = new Dictionary<ulong, ServerRuleConstraintModel>();
-        public Dictionary<ulong, PhraseRuleConstraintModel> PhraseRules { get; set; } = new Dictionary<ulong, PhraseRuleConstraintModel>();
-        public Dictionary<ulong, PhraseHomographOverrideModel> HomographOverrides { get; set; } = new Dictionary<ulong, PhraseHomographOverrideModel>();
-        public Dictionary<ulong, PhraseSubstringModifierModel> SubstringModifiers { get; set; } = new Dictionary<ulong, PhraseSubstringModifierModel>();
+        public GenericConstraintModel UserConstraints { get; } = new GenericConstraintModel();
+        public GenericConstraintModel ChannelConstraints { get; } = new GenericConstraintModel();
+        public RoleConstraintModel RoleConstraints { get; } = new RoleConstraintModel();
+
+        public Dictionary<ulong, PhraseRuleModifierModel> PhraseRules { get; } = new Dictionary<ulong, PhraseRuleModifierModel>();
+        public Dictionary<ulong, PhraseHomographOverrideModel> HomographOverrides { get; } = new Dictionary<ulong, PhraseHomographOverrideModel>();
+        public Dictionary<ulong, PhraseSubstringModifierModel> SubstringModifiers { get; } = new Dictionary<ulong, PhraseSubstringModifierModel>();
 
         public PhraseRule CreateConcrete() {
-            IEnumerable<ServerRuleConstraint> serverRuleConstraints = Repository.ConvertValues(ServerRules.Values, x => x.CreateConcrete());
-            IEnumerable<PhraseRuleConstraint> phraseRuleConstraints = Repository.ConvertValues(PhraseRules.Values, x => x.CreateConcrete());
+            IEnumerable<PhraseRuleModifier> phraseRuleModifiers = Repository.ConvertValues(PhraseRules.Values, x => x.CreateConcrete());
 
-            if (ManualPattern) {
-                return new PhraseRule(Id, Pattern, (PcreOptions)(PcreOptions ?? 0), serverRuleConstraints, phraseRuleConstraints);
+            PhraseRuleConstraints phraseRuleConstraints = new PhraseRuleConstraints(UserConstraints.CreateConcrete(), ChannelConstraints.CreateConcrete(), RoleConstraints.CreateConcrete());
+            
+            if (Pattern == null) {
+                return new PhraseRule(Pattern, (PcreOptions) (PcreOptions ?? 0), phraseRuleConstraints, phraseRuleModifiers);
             }
 
             else {
                 IEnumerable<PhraseHomographOverride> homographOverrides = Repository.ConvertValues(HomographOverrides.Values, x => x.CreateConcrete());
                 IEnumerable<PhraseSubstringModifier> substringModifiers = Repository.ConvertValues(SubstringModifiers.Values, x => x.CreateConcrete());
 
-                return new PhraseRule(Id, Text, serverRuleConstraints, phraseRuleConstraints, homographOverrides, substringModifiers);
+                PhraseRulePhraseModifiers phraseRulePhraseModifiers = new PhraseRulePhraseModifiers(phraseRuleModifiers, homographOverrides, substringModifiers);
+
+                return new PhraseRule(Id, Text, phraseRuleConstraints, phraseRulePhraseModifiers);
             }
         }
     }

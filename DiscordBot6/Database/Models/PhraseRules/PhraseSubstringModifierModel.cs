@@ -9,7 +9,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public int SubstringStart { get; set; }
         public int SubstringEnd { get; set; }
 
-        public List<string> Data { get; set; } = new List<string>();
+        public List<string> Data { get; } = new List<string>();
 
         public PhraseSubstringModifier CreateConcrete() {
             return new PhraseSubstringModifier((SubstringModifierType)ModifierType, SubstringStart, SubstringEnd, Data);

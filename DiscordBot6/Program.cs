@@ -38,7 +38,7 @@ namespace DiscordBot6 {
             Server server = await Server.GetServerAsync(socketGuildChannel.Guild.Id);
             PhraseRule[] phraseRules = await server.GetPhraseRuleSetsAsync();
 
-            // this is unfinished - i want to do a thing where the user can decide what happens. 
+            // this is unfinished - i want to do a thing where the user can decide what happens
             // just a placeholder for the moment!
             foreach (PhraseRule phraseRule in phraseRules) {
                 if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
@@ -56,7 +56,11 @@ namespace DiscordBot6 {
             SocketGuildUser socketGuildUser = (socketUser as SocketGuildUser);
             Server server = await Server.GetServerAsync(socketGuildUser.Guild.Id);
 
-            if ((!server.AutoMutePersist && !server.AutoDeafenPersist) || server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this server does not want automatic mute or deafen persist OR this is an event that we triggered and should ignore
+            if (!(server.AutoMutePersist || server.AutoDeafenPersist)) { // this server does not want automatic mute or deafen persists
+                return;
+            }
+
+            if (server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this is an event that we triggered and therefore should ignore
                 return;
             }
 
@@ -92,34 +96,35 @@ namespace DiscordBot6 {
         }
 
         private static async Task Client_GuildMemberUpdated(SocketGuildUser beforeUser, SocketGuildUser afterUser) {
+            // we're only interested in the IDs of the roles added and removed (and after too for checking for contingent roles)
             HashSet<ulong> rolesAfter = new HashSet<ulong>(afterUser.Roles.Select(role => role.Id));
 
             HashSet<ulong> rolesAdded = new HashSet<ulong>(rolesAfter);
             HashSet<ulong> rolesRemoved = new HashSet<ulong>(beforeUser.Roles.Select(role => role.Id));
 
-            rolesAdded.ExceptWith(rolesRemoved);
-            rolesRemoved.ExceptWith(rolesAfter);
+            rolesAdded.ExceptWith(rolesRemoved); // remove all of the roles the user had at the start from those they had at the end to get a list of additions
+            rolesRemoved.ExceptWith(rolesAfter); // remove all of the roles the user had at the end from those they had at the start to get a list of removals
 
             if (rolesAdded.Count == 0 && rolesRemoved.Count == 0) { // no roles were changed
-                return; // there's nothing we want to do
+                return;
             }
 
             Server server = await Server.GetServerAsync(beforeUser.Guild.Id);
             User user = await server.GetUserAsync(beforeUser.Id);
 
-            if (server.CheckAndRemoveRoleUpdated(user.Id)) { // 
+            if (server.CheckAndRemoveRoleUpdated(user.Id)) { // this is an event that we triggered and therefore should ignore
                 return;
             }
 
-            if (rolesAdded.Count > 0) {
+            if (rolesAdded.Count > 0) { // roles were added
                 ContingentRole[] contingentRoles = await server.GetContingentRolesAsync();
                 HashSet<ulong> rolesToRemove = new HashSet<ulong>();
 
                 foreach (ContingentRole contingentRole in contingentRoles) {
-                    if (rolesAdded.Contains(contingentRole.RoleId)) {
+                    if (rolesAdded.Contains(contingentRole.RoleId)) { // the user received a role that disallows other roles
                         IEnumerable<ulong> commonRoles = contingentRole.ContingentRoles.Intersect(rolesAfter);
 
-                        if (commonRoles.Any()) {
+                        if (commonRoles.Any()) { // the user has roles they're no longer allowed to have
                             rolesToRemove.UnionWith(commonRoles);
                             await user.AddContingentRolesRemovedAsync(contingentRole.RoleId, commonRoles);
                         }
@@ -128,14 +133,14 @@ namespace DiscordBot6 {
 
                 foreach (ulong currentRole in rolesAfter) {
                     foreach (ContingentRole contingentRole in contingentRoles) {
-                        if (contingentRole.RoleId == currentRole) {
+                        if (contingentRole.RoleId == currentRole) { // the user was given a role they're not allowed to have because of contingent roles they have
                             rolesToRemove.UnionWith(contingentRole.ContingentRoles.Intersect(rolesAdded));
-                            break;
+                            break; // each contingent role can only match with one role the user has - no point in checking any more
                         }
                     }
                 }
 
-                if (rolesToRemove.Count > 0) {
+                if (rolesToRemove.Count > 0) { // there are roles we need to remove
                     server.TryAddRoleUpdated(user.Id);
                     await beforeUser.RemoveRolesAsync(rolesToRemove);
 
@@ -145,14 +150,14 @@ namespace DiscordBot6 {
                 }
             }
 
-            if (rolesRemoved.Count > 0) {
+            if (rolesRemoved.Count > 0) { // the user had roles removed
                 ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved = await user.GetContingentRolesRemoved();
 
                 foreach (ulong bannedRole in contingentRolesRemoved.Keys) {
-                    if (rolesRemoved.Contains(bannedRole)) {
+                    if (rolesRemoved.Contains(bannedRole)) { // the user had one of their roles removed
                         HashSet<ulong> rolesToAdd = contingentRolesRemoved[bannedRole];
 
-                        if (rolesToAdd.Count > 0) {
+                        if (rolesToAdd.Count > 0) { // there are roles that were taken when the user was given a contingent role. we need to give those back
                             server.TryAddRoleUpdated(user.Id);
 
                             await beforeUser.AddRolesAsync(rolesToAdd);
@@ -167,7 +172,7 @@ namespace DiscordBot6 {
             }
 
             if (!server.AutoRolePersist) { // server doesn't want automatic role persists
-                return; // there's nothing else we need to do
+                return;
             }
 
             if (rolesAdded.Count > 0) {

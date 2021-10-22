@@ -24,7 +24,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
             IEnumerable<PhraseRuleConstraint> phraseRuleConstraints = Repository.ConvertValues(PhraseRules.Values, x => x.CreateConcrete());
 
             if (ManualPattern) {
-                return new PhraseRule(Id, Pattern, (PcreOptions) (PcreOptions ?? 0), serverRuleConstraints, phraseRuleConstraints);
+                return new PhraseRule(Id, Pattern, (PcreOptions)(PcreOptions ?? 0), serverRuleConstraints, phraseRuleConstraints);
             }
 
             else {

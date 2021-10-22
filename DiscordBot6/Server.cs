@@ -1,7 +1,6 @@
-﻿using DiscordBot6.Database;
+﻿using DiscordBot6.ContingentRoles;
+using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
-using DiscordBot6.Users;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -12,8 +11,10 @@ namespace DiscordBot6 {
 
         private readonly HashSet<ulong> userVoicesStatusUpdated = new HashSet<ulong>();
         private readonly HashSet<ulong> userRolesUpdated = new HashSet<ulong>();
-        private readonly ConcurrentDictionary<ulong, UserSettings> users = new ConcurrentDictionary<ulong, UserSettings>();
+        private readonly ConcurrentDictionary<ulong, User> users = new ConcurrentDictionary<ulong, User>();
+
         private PhraseRule[] phraseRules;
+        private ContingentRole[] contingentRoles;
 
         public ulong Id { get; }
 
@@ -27,40 +28,6 @@ namespace DiscordBot6 {
             AutoMutePersist = autoMutePersist;
             AutoDeafenPersist = autoDeafenPersist;
             AutoRolePersist = autoRolePersist;
-        }
-
-        public async Task<PhraseRule[]> GetPhraseRuleSetsAsync() {
-            if (phraseRules == null) {
-                phraseRules = await Repository.GetPhraseRulesAsync(Id);
-            }
-
-            return phraseRules;
-        }
-
-        public async Task<UserSettings> GetUserSettingsAsync(ulong id) {
-            if (!users.ContainsKey(id)) {
-                UserSettings newUser = await Repository.GetUserSettingsAsync(Id, id);
-                if (newUser == null) {
-                    newUser = new UserSettings(false, false);
-                    await Repository.AddOrUpdateUserSettingsAsync(Id, id, newUser);
-                }
-
-                users.TryAdd(id, newUser);
-                return newUser;
-            }
-
-            return users[id];
-        }
-
-        public async Task SetUserSettingsAsync(ulong id, UserSettings userSettings) {
-            if (!users.ContainsKey(id)) {
-                await GetUserSettingsAsync(id);
-            }
-
-            if (users.ContainsKey(id)) {
-                users[id] = userSettings;
-                await Repository.AddOrUpdateUserSettingsAsync(Id, id, userSettings);
-            }
         }
 
         public static async Task<Server> GetServerAsync(ulong id) {
@@ -82,19 +49,43 @@ namespace DiscordBot6 {
             return serverCache.TryRemove(id, out _);
         }
 
-        public async Task AddRolePersistAsync(ulong userId, ulong roleId) {
-            UserSettings userSettings = await GetUserSettingsAsync(userId);
-
-            if (userSettings.RolesPersisted.Add(roleId)) { // only add to db if adding it to the cache was successful - free duplicate checking!
-                await Repository.AddRolePersistAsync(Id, userId, roleId);
+        public async Task<PhraseRule[]> GetPhraseRuleSetsAsync() {
+            if (phraseRules == null) {
+                phraseRules = await Repository.GetPhraseRulesAsync(Id);
             }
+
+            return phraseRules;
         }
 
-        public async Task RemoveRolePersistAsync(ulong userId, ulong roleId) {
-            UserSettings userSettings = await GetUserSettingsAsync(userId);
+        public async Task<ContingentRole[]> GetContingentRolesAsync() {
+            if (contingentRoles == null) {
+                contingentRoles = await Repository.GetContingentRulesAsync(Id);
+            }
 
-            if (userSettings.RolesPersisted.Remove(roleId)) { // only remove from db if removing it from the cache was successful - free duplicate checking!
-                await Repository.RemoveRolePersistAsync(Id, userId, roleId);
+            return contingentRoles;
+        }
+
+        public async Task<User> GetUserAsync(ulong id) {
+            if (!users.ContainsKey(id)) {
+                User user = (await Repository.GetUserAsync(Id, id)) ?? new User(id, false, false);
+
+                user.Parent = this;
+                users.TryAdd(id, user);
+
+                return user;
+            }
+
+            return users[id];
+        }
+
+        public async Task SetUserSettingsAsync(ulong id, User userSettings) {
+            if (!users.ContainsKey(id)) {
+                await GetUserAsync(id);
+            }
+
+            if (users.ContainsKey(id)) {
+                users[id] = userSettings;
+                await Repository.AddOrUpdateUserAsync(userSettings);
             }
         }
 

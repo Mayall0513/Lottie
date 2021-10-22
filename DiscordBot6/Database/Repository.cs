@@ -1,9 +1,11 @@
 ﻿using Dapper;
+using Dapper.Transaction;
+using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database.Models;
+using DiscordBot6.Database.Models.ContingentRoles;
 using DiscordBot6.Database.Models.PhraseRules;
 using DiscordBot6.Database.Models.ServerRules;
 using DiscordBot6.PhraseRules;
-using DiscordBot6.Users;
 using MySqlConnector;
 using System;
 using System.Collections.Generic;
@@ -12,20 +14,13 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
-
 namespace DiscordBot6.Database {
     public static class Repository {
         public static async Task<Server> GetServerAsync(ulong id) {
             using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             ServerModel serverModel = await dbConnection.QuerySingleOrDefaultAsync<ServerModel>("sp_Get_Server", new { id }, commandType: CommandType.StoredProcedure);
 
-            if (serverModel == null) {
-                return null;
-            }
-
-            else {
-                return serverModel.CreateConcrete();
-            }
+            return serverModel?.CreateConcrete();
         }
 
         public static async Task AddOrUpdateServerAsync(Server server) {
@@ -37,15 +32,15 @@ namespace DiscordBot6.Database {
             List<PhraseRule> phraseRules = new List<PhraseRule>();
             Dictionary<ulong, PhraseRuleModel> phraseRuleModels = new Dictionary<ulong, PhraseRuleModel>();
 
-            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);          
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             IEnumerable<dynamic> phraseRuleElements = await dbConnection.QueryAsync<dynamic>("sp_Get_PhraseRules", new { serverId }, commandType: CommandType.StoredProcedure);
 
             foreach (dynamic phraseRuleElement in phraseRuleElements) {
                 PhraseRuleModel phraseRuleModel = new PhraseRuleModel() { Id = phraseRuleElement.Id, ServerId = phraseRuleElement.ServerId, Text = phraseRuleElement.Text, ManualPattern = phraseRuleElement.ManualPattern, Pattern = phraseRuleElement.PhrasePattern, PcreOptions = phraseRuleElement.PcreOptions };
-                if (!phraseRuleModels.TryAdd(phraseRuleElement.Id, phraseRuleModel)) {
-                    phraseRuleModel = phraseRuleModels[phraseRuleElement.Id];
+                if (!phraseRuleModels.TryAdd(phraseRuleModel.Id, phraseRuleModel)) {
+                    phraseRuleModel = phraseRuleModels[phraseRuleModel.Id];
                 }
-                
+
                 if (phraseRuleElement.ServerConstraintType != null) {
                     ServerRuleConstraintModel serverRuleConstraintModel = new ServerRuleConstraintModel() { Id = phraseRuleElement.ServerConstraintId, ConstraintType = phraseRuleElement.ServerConstraintType };
 
@@ -62,7 +57,7 @@ namespace DiscordBot6.Database {
 
                 if (phraseRuleElement.OverrideType != null) {
                     PhraseHomographOverrideModel phraseHomographOverrideModel = new PhraseHomographOverrideModel() { Id = phraseRuleElement.HomographId, OverrideType = phraseRuleElement.OverrideType, Pattern = phraseRuleElement.HomographPattern };
-                    
+
                     phraseRuleModel.HomographOverrides.TryAdd(phraseHomographOverrideModel.Id, phraseHomographOverrideModel);
                     phraseRuleModel.HomographOverrides[phraseHomographOverrideModel.Id].Homographs.Add(phraseRuleElement.HomographData);
                 }
@@ -78,32 +73,37 @@ namespace DiscordBot6.Database {
             foreach (PhraseRuleModel phraseRuleModel in phraseRuleModels.Values) {
                 phraseRules.Add(phraseRuleModel.CreateConcrete());
             }
-            
+
 
             return phraseRules.ToArray();
         }
 
-        public static async Task AddOrUpdateUserSettingsAsync(ulong serverId, ulong userId, UserSettings userSettings) {
-            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString); 
-            await dbConnection.ExecuteAsync("sp_AddOrUpdate_UserSettings", new { serverId, userId, userSettings.MutePersisted, userSettings.DeafenPersisted }, commandType: CommandType.StoredProcedure);
-        }
-
-        public static async Task<UserSettings> GetUserSettingsAsync(ulong serverId, ulong userId) {
+        public static async Task AddOrUpdateUserAsync(User user) {
             using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            UserSettingsModel userSettingsModel = await dbConnection.QuerySingleOrDefaultAsync<UserSettingsModel>("sp_Get_UserSettings", new { serverId, userId }, commandType: CommandType.StoredProcedure);
-
-            if (userSettingsModel == null) {
-                return null;
-            }
-
-            else {
-                return userSettingsModel.CreateConcrete();
-            }
+            await dbConnection.ExecuteAsync("sp_AddOrUpdate_User", new { ServerId = user.Parent.Id, user.Id, user.MutePersisted, user.DeafenPersisted }, commandType: CommandType.StoredProcedure);
         }
 
-        public static async Task AddRolePersistAsync(ulong serverId, ulong userId, ulong roleId) {
+        public static async Task<User> GetUserAsync(ulong serverId, ulong userId) {
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            return await dbConnection.QuerySingleOrDefaultAsync<User>("sp_Get_User", new { serverId, userId }, commandType: CommandType.StoredProcedure);
+        }
+
+        public static async Task AddRolePersistedAsync(ulong serverId, ulong userId, ulong roleId) {
             using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             await dbConnection.ExecuteAsync("sp_Add_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+        }
+
+        public static async Task AddRolesPersistedAsync(ulong serverId, ulong userId, IEnumerable<ulong> roleIds) {
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await connection.OpenAsync();
+
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
+
+            foreach (ulong roleId in roleIds) {
+                await transaction.ExecuteAsync("sp_Add_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+            }
+
+            await transaction.CommitAsync();
         }
 
         public static async Task<ulong[]> GetRolePersistsAsync(ulong serverId, ulong userId) {
@@ -111,13 +111,93 @@ namespace DiscordBot6.Database {
             return (await dbConnection.QueryAsync<ulong>("sp_Get_RolePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure)).ToArray();
         }
 
-        public static async Task RemoveRolePersistAsync(ulong serverId, ulong userId, ulong roleId) {
-            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString); 
+        public static async Task RemoveRolePersistedAsync(ulong serverId, ulong userId, ulong roleId) {
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             await dbConnection.ExecuteAsync("sp_Remove_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
         }
 
+        public static async Task RemoveRolesPersistedAsync(ulong serverId, ulong userId, IEnumerable<ulong> roleIds) {
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await connection.OpenAsync();
+
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
+
+            foreach (ulong roleId in roleIds) {
+                await transaction.ExecuteAsync("sp_Remove_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+            }
+
+            await transaction.CommitAsync();
+        }
+
+        public static async Task<ContingentRole[]> GetContingentRulesAsync(ulong serverId) {
+            List<ContingentRole> contingentRoles = new List<ContingentRole>();
+            Dictionary<ulong, ContingentRoleModel> contingentRoleModels = new Dictionary<ulong, ContingentRoleModel>();
+
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            IEnumerable<dynamic> contingentRoleElements = await dbConnection.QueryAsync<dynamic>("sp_Get_ContingentRoles", new { serverId }, commandType: CommandType.StoredProcedure);
+
+            foreach (dynamic contingentRoleElement in contingentRoleElements) {
+                ContingentRoleModel contingentRoleModel = new ContingentRoleModel() { Id = contingentRoleElement.Id, ServerId = contingentRoleElement.ServerId, RoleId = contingentRoleElement.RoleId };
+                if (!contingentRoleModels.TryAdd(contingentRoleModel.Id, contingentRoleModel)) {
+                    contingentRoleModel = contingentRoleModels[contingentRoleModel.Id];
+                }
+
+                if (contingentRoleElement.ContingentRoleId != null) {
+                    contingentRoleModel.ContingentRoles.Add(contingentRoleElement.ContingentRoleId);
+                }
+            }
+
+            foreach (ContingentRoleModel contingentRoleModel in contingentRoleModels.Values) {
+                contingentRoles.Add(contingentRoleModel.CreateConcrete());
+            }
+
+            return contingentRoles.ToArray();
+        }
+
+        public static async Task<Dictionary<ulong, HashSet<ulong>>> GetActiveContingentRolesAsync(ulong serverId, ulong userId) {
+            Dictionary<ulong, HashSet<ulong>> activeContingentRoles = new Dictionary<ulong, HashSet<ulong>>();
+
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            IEnumerable<dynamic> activeContingentRoleElements = await connection.QueryAsync<dynamic>("sp_Get_ContingentRoles_Active", new { serverId, userId }, commandType: CommandType.StoredProcedure);
+
+            foreach (dynamic activeContingentRoleElement in activeContingentRoleElements) {
+                if (!activeContingentRoles.ContainsKey(activeContingentRoleElement.RoleId)) {
+                    activeContingentRoles.TryAdd(activeContingentRoleElement.RoleId, new HashSet<ulong>());
+                }
+
+                if (activeContingentRoleElement.ContingentRoleId != null) {
+                    activeContingentRoles[activeContingentRoleElement.RoleId].Add(activeContingentRoleElement.ContingentRoleId);
+                }
+            }
+
+            return activeContingentRoles;
+        }
+
+        public static async Task AddActiveContingentRoleAsync(ulong serverId, ulong userId, ulong roleId, ulong contingentRoleId) {
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await dbConnection.ExecuteAsync("sp_Add_ContingentRoles_Active", new { serverId, userId, roleId, contingentRoleId }, commandType: CommandType.StoredProcedure);
+        }
+
+        public static async Task AddActiveContingentRolesAsync(ulong serverId, ulong userId, ulong roleId, IEnumerable<ulong> contingentRoleIds) {
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await connection.OpenAsync();
+
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
+
+            foreach (ulong contingentRoleId in contingentRoleIds) {
+                await transaction.ExecuteAsync("sp_Add_ContingentRoles_Active", new { serverId, userId, roleId, contingentRoleId }, commandType: CommandType.StoredProcedure);
+            }
+
+            await transaction.CommitAsync();
+        }
+
+        public static async Task RemoveActiveContingentRolesAsync(ulong serverId, ulong userId, ulong roleId) {
+            using MySqlConnection dbConnection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            await dbConnection.ExecuteAsync("sp_Remove_ContingentRoles_Active", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+        }
+
         // we need this because the models are value types, we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason
-        public static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) { 
+        public static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) {
             O[] outputArray = new O[collection.Count];
             int index = 0;
 

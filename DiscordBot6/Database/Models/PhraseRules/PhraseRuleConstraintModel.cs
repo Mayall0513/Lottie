@@ -9,7 +9,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public List<string> Data { get; set; } = new List<string>();
 
         public PhraseRuleConstraint CreateConcrete() {
-            return new PhraseRuleConstraint((PhraseRuleConstraintType) ConstraintType, Data);
+            return new PhraseRuleConstraint((PhraseRuleConstraintType)ConstraintType, Data);
         }
     }
 }

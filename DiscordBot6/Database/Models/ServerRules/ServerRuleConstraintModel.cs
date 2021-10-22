@@ -6,10 +6,10 @@ namespace DiscordBot6.Database.Models.ServerRules {
         public ulong Id { get; set; }
         public int ConstraintType { get; set; }
 
-        public List<ulong> Data { get; set; } = new List<ulong>();
+        public HashSet<ulong> Data { get; set; } = new HashSet<ulong>();
 
         public ServerRuleConstraint CreateConcrete() {
-            return new ServerRuleConstraint((ServerRuleConstraintType) ConstraintType, Data);
+            return new ServerRuleConstraint((ServerRuleConstraintType)ConstraintType, Data);
         }
     }
 }

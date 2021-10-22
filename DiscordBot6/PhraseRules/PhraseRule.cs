@@ -1,7 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using DiscordBot6.Database;
-using DiscordBot6.Database.Models.PhraseRules;
 using DiscordBot6.Helpers;
 using DiscordBot6.ServerRules;
 using PCRE;
@@ -21,7 +19,7 @@ namespace DiscordBot6.PhraseRules {
         public bool ManualPattern { get; }
         public string Pattern => regex.PatternInfo.PatternString;
 
-        private PcreRegex regex;
+        private readonly PcreRegex regex;
 
         private bool matchBots = true;
         private bool matchSelf = false;

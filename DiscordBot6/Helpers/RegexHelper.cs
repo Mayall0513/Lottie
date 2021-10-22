@@ -6,26 +6,26 @@ using System.Text;
 
 namespace DiscordBot6.Helpers {
     public static class RegexPatterns {
-        public const string PATTERN_WORDSTART                 = "(?:\\s|^)";
+        public const string PATTERN_WORDSTART = "(?:\\s|^)";
         public const string PATTERN_WORDSTART_NOTMESSAGESTART = "(?<!^)(?:\\s)";
-        public const string PATTERN_NOT_WORDSTART             = "[^\\s]";
+        public const string PATTERN_NOT_WORDSTART = "[^\\s]";
 
-        public const string PATTERN_WORDEND               = "(?:\\s|$)";
+        public const string PATTERN_WORDEND = "(?:\\s|$)";
         public const string PATTERN_WORDEND_NOTMESSAGEEND = "(?:\\s)(?!$)";
-        public const string PATTERN_NOT_WORDEND           = "[^\\s]";
+        public const string PATTERN_NOT_WORDEND = "[^\\s]";
 
         public const string PATTERN_NOT_BEFORE = "(?!{0})";
-        public const string PATTERN_NOT_AFTER  = "(?<!{0})";
+        public const string PATTERN_NOT_AFTER = "(?<!{0})";
 
-        public const string PATTERN_ONE_OR_MORE_GROUP  = "(?:{0})+";
+        public const string PATTERN_ONE_OR_MORE_GROUP = "(?:{0})+";
         public const string PATTERN_EXACT_LENGTH_GROUP = "(?:{0}){{1}}";
-        public const string PATTERN_ATLEAST_GROUP      = "(?:{0}){{1},}";
-        public const string PATTERN_AT_MOST_GROUP      = "(?:{0}){,{1}}";
+        public const string PATTERN_ATLEAST_GROUP = "(?:{0}){{1},}";
+        public const string PATTERN_AT_MOST_GROUP = "(?:{0}){,{1}}";
 
-        public const string PATTERN_ONE_OR_MORE_NOGROUP  = "{0}+";
+        public const string PATTERN_ONE_OR_MORE_NOGROUP = "{0}+";
         public const string PATTERN_EXACT_LENGTH_NOGROUP = "{0}{{1}}";
-        public const string PATTERN_ATLEAST_NOGROUP      = "{0}{{1},}";
-        public const string PATTERN_AT_MOST_NOGROUP      = "{0}{,{1}}";
+        public const string PATTERN_ATLEAST_NOGROUP = "{0}{{1},}";
+        public const string PATTERN_AT_MOST_NOGROUP = "{0}{,{1}}";
 
         public static readonly string[] PATTERNGROUP_WORDSTART = new[] {
             PATTERN_WORDSTART,
@@ -91,7 +91,7 @@ namespace DiscordBot6.Helpers {
                         case SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT:
                         case SubstringModifierType.MODIFIER_CHARACTERCOUNT_MINIMUM:
                         case SubstringModifierType.MODIFIER_CHARACTERCOUNT_MAXIMUM:
-                            characterCountOverride = (int) substringModifier.ModifierType - (int) SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT + 1;
+                            characterCountOverride = (int)substringModifier.ModifierType - (int)SubstringModifierType.MODIFIER_CHARACTERCOUNT_EXACT + 1;
                             break;
 
                         case SubstringModifierType.MODIFIER_HOMOGRAPHS_NO:
@@ -229,7 +229,7 @@ namespace DiscordBot6.Helpers {
 
                             textIsWrapped = true;
                         }
-                        
+
                         foreach (string bannedPhrase in phraseRuleModifier.Data) {
                             escapedString = EscapeString(bannedPhrase, false);
 
@@ -241,7 +241,7 @@ namespace DiscordBot6.Helpers {
                                 regex.Insert(0, string.Format(RegexPatterns.PATTERN_NOT_AFTER, escapedString));
                             }
                         }
-                        
+
                         break;
                 }
             }
@@ -268,7 +268,7 @@ namespace DiscordBot6.Helpers {
 
                     return true;
                 }
-                
+
                 return false;
             });
 
@@ -335,9 +335,9 @@ namespace DiscordBot6.Helpers {
             if (text.Length == 1) {
                 return RequiresEscaping(text[0], insideCharacterClass) ? "\\" + text : text;
             }
-            
+
             else {
-                StringBuilder escapedString = new StringBuilder((int) (text.Length * 1.1));
+                StringBuilder escapedString = new StringBuilder((int)(text.Length * 1.1));
 
                 foreach (char character in text) {
                     bool requiresEscaping = RequiresEscaping(character, insideCharacterClass);
@@ -354,7 +354,7 @@ namespace DiscordBot6.Helpers {
 
         public static bool RequiresEscaping(char character, bool insideCharacterClass = false) {
             if (insideCharacterClass) {
-                switch(character) {
+                switch (character) {
                     case '^':
                     case '-':
                     case ']':

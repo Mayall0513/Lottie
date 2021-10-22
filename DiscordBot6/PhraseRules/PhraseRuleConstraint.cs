@@ -13,7 +13,7 @@ namespace DiscordBot6.PhraseRules {
         MODIFIER_NOT_WORDEND,      // must not be at the end of a word
         MODIFIER_NOT_MESSAGESTART, // must not be at the start of a message
         MODIFIER_NOT_MESSAGEEND,   // must not be at the end of a message
-        
+
         MODIFIER_NOT_BEFORE, // must not be before specific text
         MODIFIER_NOT_AFTER,  // must not be after specific text#
 

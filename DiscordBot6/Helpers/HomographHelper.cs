@@ -14,7 +14,7 @@ namespace DiscordBot6.Helpers {
         };
 
         static HomographHelper() { // this needs finishing!
-            homographsTemplate.Add("a", new HashSet<string>(new[] { "🇦", "4"}));
+            homographsTemplate.Add("a", new HashSet<string>(new[] { "🇦", "4" }));
             homographsTemplate.Add("b", new HashSet<string>(new[] { "🇧", "6" }));
             homographsTemplate.Add("c", new HashSet<string>(new[] { "🇨" }));
             homographsTemplate.Add("d", new HashSet<string>(new[] { "🇩", "cl" }));
@@ -88,7 +88,7 @@ namespace DiscordBot6.Helpers {
                 if (homographsTemplate.ContainsKey(character)) {
                     return homographsTemplate[character];
                 }
-                
+
                 else {
                     return new HashSet<string>(new[] { character });
                 }

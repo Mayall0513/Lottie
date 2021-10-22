@@ -10,7 +10,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public List<string> Homographs { get; set; } = new List<string>();
 
         public PhraseHomographOverride CreateConcrete() {
-            return new PhraseHomographOverride((HomographOverrideType) OverrideType, Pattern, Homographs);
+            return new PhraseHomographOverride((HomographOverrideType)OverrideType, Pattern, Homographs);
         }
     }
 }

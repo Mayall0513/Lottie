@@ -19,9 +19,9 @@ namespace DiscordBot6.Timing {
 
             SocketChannel socketChannel = DiscordBot6.Client.GetChannel(ChannelId);
             if (socketChannel is SocketVoiceChannel socketVoiceChannel) {
-                SocketUser socketUser = DiscordBot6.Client.GetUser(UserId);
+                SocketUser socketUser = DiscordBot6.Client.GetGuild(ServerId)?.GetUser(UserId);
 
-                if (socketUser is SocketGuildUser socketGuildUser && socketGuildUser.VoiceChannel?.Id == ChannelId) {
+                if (socketUser is SocketGuildUser socketGuildUser && socketGuildUser.VoiceChannel?.Id == ChannelId && socketGuildUser.IsMuted) {
                     server.TryAddVoiceStatusUpdated(socketUser.Id);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
                 }

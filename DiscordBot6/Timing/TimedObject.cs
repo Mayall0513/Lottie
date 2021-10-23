@@ -17,7 +17,7 @@ namespace DiscordBot6.Timing {
                     }
 
                     else {
-                        timer = new Timer(OnExpiry, null, value.Value - DateTime.UtcNow, TimeSpan.FromMilliseconds(-1));
+                        timer = new Timer(OnExpiry, null, value.Value - DateTime.UtcNow, Timeout.InfiniteTimeSpan);
                     }
                 }
             } 

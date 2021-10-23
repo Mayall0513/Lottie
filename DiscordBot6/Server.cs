@@ -1,4 +1,5 @@
 ﻿using Discord;
+using DiscordBot6.Constraints;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
@@ -30,6 +31,8 @@ namespace DiscordBot6 {
         public bool AutoMutePersist { get; }
         public bool AutoDeafenPersist { get; }
         public bool AutoRolePersist { get; }
+
+        private RoleConstraint tempMuteRoleConstraint;
 
         public Server(ulong id, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist) {
             Id = id;
@@ -112,6 +115,15 @@ namespace DiscordBot6 {
                 users[id] = user;
                 await Repository.AddOrUpdateUserAsync(user);
             }
+        }
+
+
+        public async Task<bool> UserMayTempMute(IEnumerable<ulong> roleIds) {
+            if (tempMuteRoleConstraint == null) {
+                tempMuteRoleConstraint = await Repository.GetTempMuteConstraintsAsync(Id);
+            }
+
+            return tempMuteRoleConstraint.Matches(roleIds);
         }
     }
 }

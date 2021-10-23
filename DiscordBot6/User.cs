@@ -32,7 +32,6 @@ namespace DiscordBot6 {
         }
 
 
-
         public async Task AddRolePersistedAsync(ulong roleId) {
             if (rolesPersisted == null) {
                 await CacheRolesPersistedAsync();

@@ -1,7 +1,9 @@
 ﻿using Dapper;
 using Dapper.Transaction;
+using DiscordBot6.Constraints;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database.Models;
+using DiscordBot6.Database.Models.Constraints;
 using DiscordBot6.Database.Models.ContingentRoles;
 using DiscordBot6.Database.Models.PhraseRules;
 using DiscordBot6.PhraseRules;
@@ -11,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Database {
@@ -236,6 +239,30 @@ namespace DiscordBot6.Database {
 
             return activeContingentRoles;
         }
+
+
+        public static async Task<RoleConstraint> GetTempMuteConstraintsAsync(ulong serverId) {
+            RoleConstraintModel roleConstraintModel = new RoleConstraintModel();
+
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            IEnumerable<dynamic> roleConstraintElements = await connection.QueryAsync<dynamic>("sp_Get_TempMute_Roles", new { serverId }, commandType: CommandType.StoredProcedure);
+
+            foreach (dynamic roleConstraintElement in roleConstraintElements) {
+                if (roleConstraintElement.RoleWhitelist) {
+                    roleConstraintModel.WhitelistStrict = roleConstraintElement.WhitelistStrict;
+                    roleConstraintModel.WhitelistRequirements.Add(roleConstraintElement.RoleId);
+                }
+
+                else {
+                    roleConstraintModel.BlacklistStrict = roleConstraintElement.BlacklistStrict;
+                    roleConstraintModel.BlacklistRequirements.Add(roleConstraintElement.RoleId);
+                }
+            }
+
+            return roleConstraintModel.CreateConcrete();
+        }
+        
+
 
         // we need this because the models are value types. due to this we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason
         public static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) {

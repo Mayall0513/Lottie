@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace DiscordBot6.Constraints {
-    public struct RoleConstraint {
+    public sealed class RoleConstraint {
         private readonly bool whitelistStrict;
         private readonly HashSet<ulong> whitelistRequirements;
 
@@ -10,34 +11,38 @@ namespace DiscordBot6.Constraints {
 
         public RoleConstraint(bool whitelistStrict, IEnumerable<ulong> whitelistRequirements, bool blacklistStrict, IEnumerable<ulong> blacklistRequirements) {
             this.whitelistStrict = whitelistStrict;
-            this.whitelistRequirements = new HashSet<ulong>(whitelistRequirements);
+            if (whitelistRequirements.Any()) {
+                this.whitelistRequirements = new HashSet<ulong>(whitelistRequirements);
+            }
 
             this.blacklistStrict = blacklistStrict;
-            this.blacklistRequirements = new HashSet<ulong>(blacklistRequirements);
+            if (blacklistRequirements.Any()) {
+                this.blacklistRequirements = new HashSet<ulong>(blacklistRequirements);
+            }
         }
 
         public bool Matches(IEnumerable<ulong> roleIds) {
             if (whitelistRequirements != null) {
                 if (whitelistStrict) { // everything inside of the requirements must be there (or not)
-                    bool failed = false;
-
                     foreach (ulong roleId in roleIds) {
                         if (!whitelistRequirements.Contains(roleId)) {
-                            failed = true;
+                            return false;
+                        }
+                    }
+                }
+
+                else { // anything inside of the requirements must be there (or not)
+                    bool failed = true;
+
+                    foreach (ulong roleId in roleIds) {
+                        if (whitelistRequirements.Contains(roleId)) {
+                            failed = false;
                             break;
                         }
                     }
 
                     if (failed) {
                         return false;
-                    }
-                }
-
-                else { // anything inside of the requirements must be there (or not)
-                    foreach (ulong roleId in roleIds) {
-                        if (whitelistRequirements.Contains(roleId)) {
-                            return false;
-                        }
                     }
                 }
             }

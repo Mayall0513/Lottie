@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace DiscordBot6.Constraints {
-    public struct GenericConstraint {
+    public sealed class GenericConstraint {
         private readonly bool whitelist;
         private readonly HashSet<ulong> requirements;
 

@@ -1,7 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot6.ContingentRoles;
+using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
@@ -10,33 +12,33 @@ using System.Threading.Tasks;
 
 namespace DiscordBot6 {
     public static class Program {
-        private static DiscordSocketClient client;
+        public static DiscordSocketClient Client { get; private set; }
 
         public static ulong BotAccountId { get; private set; }
 
         public static async Task Main(string[] arguments) {
-            client = new DiscordSocketClient();
+            Client = new DiscordSocketClient();
 
-            client.Ready += Client_Ready;
-            client.MessageReceived += Client_MessageReceived;
-            client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
-            client.GuildMemberUpdated += Client_GuildMemberUpdated;
-            client.UserJoined += Client_UserJoined;
+            Client.Ready += Client_Ready;
+            Client.MessageReceived += Client_MessageReceived;
+            Client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
+            Client.GuildMemberUpdated += Client_GuildMemberUpdated;
+            Client.UserJoined += Client_UserJoined;
 
-            await client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
-            await client.StartAsync();
+            await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
+            await Client.StartAsync();
             await Task.Delay(-1);
         }
 
-        private static Task Client_Ready() {
-            BotAccountId = client.CurrentUser.Id;
-            return Task.CompletedTask;
+        private static async Task Client_Ready() {
+            BotAccountId = Client.CurrentUser.Id;
+            await Repository.GetMutePersistsAllAsync(); // creates timers
         }
 
         private static async Task Client_MessageReceived(SocketMessage socketMessage) {
             SocketGuildChannel socketGuildChannel = (socketMessage.Channel as SocketGuildChannel);
             Server server = await Server.GetServerAsync(socketGuildChannel.Guild.Id);
-            PhraseRule[] phraseRules = await server.GetPhraseRuleSetsAsync();
+            IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
 
             // this is unfinished - i want to do a thing where the user can decide what happens
             // just a placeholder for the moment!
@@ -68,7 +70,7 @@ namespace DiscordBot6 {
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                if (!afterVoiceState.IsDeafened && user.GlobalDeafenPersisted) { // user is not deafened and should be
+                if (user.GlobalDeafenPersisted && !afterVoiceState.IsDeafened) { // user is not deafened and should be
                     server.TryAddVoiceStatusUpdated(socketUser.Id);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
                 }
@@ -93,10 +95,7 @@ namespace DiscordBot6 {
                 bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
                 if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
-                    if (channelPersisted) { // user is about to be muted
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
-                    }
-
+                    server.TryAddVoiceStatusUpdated(socketUser.Id);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = channelPersisted; });
                 }
             }
@@ -124,7 +123,7 @@ namespace DiscordBot6 {
             }
 
             if (rolesAdded.Count > 0) { // roles were added
-                ContingentRole[] contingentRoles = await server.GetContingentRolesAsync();
+                IEnumerable<ContingentRole> contingentRoles = await server.GetContingentRolesAsync();
                 HashSet<ulong> rolesToRemove = new HashSet<ulong>();
 
                 foreach (ContingentRole contingentRole in contingentRoles) {

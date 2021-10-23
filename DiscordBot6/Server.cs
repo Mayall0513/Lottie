@@ -13,8 +13,8 @@ namespace DiscordBot6 {
         private readonly HashSet<ulong> userRolesUpdated = new HashSet<ulong>();
         private readonly ConcurrentDictionary<ulong, User> users = new ConcurrentDictionary<ulong, User>();
 
-        private PhraseRule[] phraseRules;
-        private ContingentRole[] contingentRoles;
+        private IReadOnlyCollection<PhraseRule> phraseRules;
+        private IReadOnlyCollection<ContingentRole> contingentRoles;
 
         public ulong Id { get; }
 
@@ -49,17 +49,17 @@ namespace DiscordBot6 {
             return serverCache.TryRemove(id, out _);
         }
 
-        public async Task<PhraseRule[]> GetPhraseRuleSetsAsync() {
+        public async Task<IEnumerable<PhraseRule>> GetPhraseRuleSetsAsync() {
             if (phraseRules == null) {
-                phraseRules = await Repository.GetPhraseRulesAsync(Id);
+                phraseRules = await Repository.GetPhraseRulesAsync(Id) as IReadOnlyCollection<PhraseRule>;
             }
 
             return phraseRules;
         }
 
-        public async Task<ContingentRole[]> GetContingentRolesAsync() {
+        public async Task<IEnumerable<ContingentRole>> GetContingentRolesAsync() {
             if (contingentRoles == null) {
-                contingentRoles = await Repository.GetContingentRulesAsync(Id);
+                contingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
             }
 
             return contingentRoles;

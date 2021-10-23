@@ -1,10 +1,58 @@
-﻿using DiscordBot6.Database;
+﻿using Discord;
+using Discord.WebSocket;
+using DiscordBot6.Database;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
+    public class MutePersist {
+        public ulong ServerId { get; set; }
+        public ulong UserId { get; set; }
+        public ulong ChannelId { get; set; }
+        public DateTime? Expiry { set {
+                if (value != null) {
+                    if (value.Value <= DateTime.UtcNow) {
+                        TimerCallback(null);
+                    }
+
+                    else {
+                        timer = new Timer(TimerCallback, null, value.Value - DateTime.UtcNow, TimeSpan.FromMilliseconds(-1));
+                    }
+                }
+            }
+        }
+
+        private Timer timer;
+
+
+#nullable enable
+        private async void TimerCallback(object? state) {
+#nullable restore
+            Server server = await Server.GetServerAsync(ServerId);
+            User user = await server.GetUserAsync(UserId);
+            await user?.RemoveMutePersistedAsync(ChannelId);
+
+            SocketGuild guild = Program.Client.GetGuild(ServerId);
+
+            if (guild != null) {
+                SocketGuildUser guildUser = guild.GetUser(UserId);
+                
+                if (guildUser is SocketGuildUser socketGuildUser && guildUser.VoiceChannel.Id == ChannelId && socketGuildUser.IsMuted) {
+                    server.TryAddVoiceStatusUpdated(UserId);
+                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
+                }
+            }
+        }
+
+        public async Task StopTimerAsync() {
+            await timer.DisposeAsync();
+        }
+    }
+
     public sealed class User {
         public ulong Id { get; }
 
@@ -13,7 +61,7 @@ namespace DiscordBot6 {
         public bool GlobalMutePersisted { get; set; }
         public bool GlobalDeafenPersisted { get; set; }
 
-        private HashSet<ulong> mutesPersisted; // stores channel ids
+        private ConcurrentDictionary<ulong, MutePersist> mutesPersisted; 
         private HashSet<ulong> rolesPersisted; // stores role ids
         private ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved;
 
@@ -78,14 +126,19 @@ namespace DiscordBot6 {
         }
 
 
-        public async Task AddMutePersistedAsync(ulong channelId) {
+        public async Task AddMutePersistedAsync(ulong channelId, DateTime? expiry) {
             if (mutesPersisted == null) {
                 await CacheMutesPersistedAsync();
             }
-
-            if (mutesPersisted.Add(channelId)) {
-                // add to database
+        
+            if (mutesPersisted.ContainsKey(channelId)) {
+                return;
             }
+
+            MutePersist mutePersist = new MutePersist() { ServerId = Parent.Id, UserId = Id, ChannelId = channelId, Expiry = expiry };
+            mutesPersisted.TryAdd(channelId, mutePersist);
+
+            await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
         }
 
         public async Task RemoveMutePersistedAsync(ulong channelId) {
@@ -93,8 +146,8 @@ namespace DiscordBot6 {
                 await CacheMutesPersistedAsync();
             }
 
-            if (mutesPersisted.Remove(channelId)) {
-                // remove from database
+            if (mutesPersisted.TryRemove(channelId, out _)) {
+                await Repository.RemoveMutePersistedAsync(Parent.Id, Id, channelId);
             }
         }
 
@@ -103,7 +156,7 @@ namespace DiscordBot6 {
                 await CacheMutesPersistedAsync();
             }
 
-            return mutesPersisted;
+            return mutesPersisted.Keys;
         }
 
 
@@ -162,7 +215,12 @@ namespace DiscordBot6 {
         }
 
         private async Task CacheMutesPersistedAsync() {
-            mutesPersisted = new HashSet<ulong>(await Repository.GetMutePersistsAsync(Parent.Id, Id));
+            IEnumerable<MutePersist> mutesPersisted = await Repository.GetMutePersistsAsync(Parent.Id, Id);
+            this.mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
+
+            foreach (MutePersist mutePersisted in mutesPersisted) {
+                this.mutesPersisted.TryAdd(mutePersisted.ChannelId, mutePersisted);
+            }
         }
 
         private async Task CacheContingentRolesRemoved() {

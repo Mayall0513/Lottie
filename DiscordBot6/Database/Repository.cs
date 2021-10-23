@@ -41,23 +41,23 @@ namespace DiscordBot6.Database {
                 }
 
                 if (phraseRuleElement.ChannelId != null) {
-                    phraseRuleModel.ChannelConstraints.Whitelist = phraseRuleElement.ChannelConstraintWhitelist;
+                    phraseRuleModel.ChannelConstraints.Whitelist = phraseRuleElement.ChannelWhitelist;
                     phraseRuleModel.ChannelConstraints.Requirements.Add(phraseRuleElement.ChannelId);
                 }
 
                 if (phraseRuleElement.UserId != null) {
-                    phraseRuleModel.UserConstraints.Whitelist = phraseRuleElement.UserConstraintWhitelist;
+                    phraseRuleModel.UserConstraints.Whitelist = phraseRuleElement.UsertWhitelist;
                     phraseRuleModel.UserConstraints.Requirements.Add(phraseRuleElement.UserId);
                 }
 
                 if (phraseRuleElement.RoleId != null) {
-                    if (phraseRuleElement.Whitelist) {
-                        phraseRuleModel.RoleConstraints.WhitelistStrict = phraseRuleElement.RoleConstraintWhitelistStrict;
+                    if (phraseRuleElement.RoleWhitelist) {
+                        phraseRuleModel.RoleConstraints.WhitelistStrict = phraseRuleElement.WhitelistStrict;
                         phraseRuleModel.RoleConstraints.WhitelistRequirements.Add(phraseRuleElement.RoleId);
                     }
 
                     else {
-                        phraseRuleModel.RoleConstraints.BlacklistStrict = phraseRuleElement.RoleConstraintBlacklistStrict;
+                        phraseRuleModel.RoleConstraints.BlacklistStrict = phraseRuleElement.BlacklistStrict;
                         phraseRuleModel.RoleConstraints.BlacklistRequirements.Add(phraseRuleElement.RoleId);
                     }
                 }

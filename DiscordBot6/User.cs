@@ -13,7 +13,8 @@ namespace DiscordBot6 {
         public bool MutePersisted { get; set; }
         public bool DeafenPersisted { get; set; }
 
-        private HashSet<ulong> rolesPersisted;
+        private HashSet<ulong> mutesPersisted; // stores channel ids
+        private HashSet<ulong> rolesPersisted; // stores role ids
         private ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved;
 
         public User(ulong id, bool mutePersisted, bool deafenPersisted) {
@@ -76,9 +77,35 @@ namespace DiscordBot6 {
             return rolesPersisted;
         }
 
-        private async Task CacheRolesPersistedAsync() {
-            rolesPersisted = new HashSet<ulong>(await Repository.GetRolePersistsAsync(Parent.Id, Id));
+
+        public async Task AddMutePersistedAsync(ulong channelId) {
+            if (mutesPersisted == null) {
+                await CacheMutesPersistedAsync();
+            }
+
+            if (mutesPersisted.Add(channelId)) {
+                // add to database
+            }
         }
+
+        public async Task RemoveMutePersistedAsync(ulong channelId) {
+            if (mutesPersisted == null) {
+                await CacheMutesPersistedAsync();
+            }
+
+            if (mutesPersisted.Remove(channelId)) {
+                // remove from database
+            }
+        }
+
+        public async Task<IEnumerable<ulong>> GetMutesPersistedAsync() {
+            if (mutesPersisted == null) {
+                await CacheMutesPersistedAsync();
+            }
+
+            return mutesPersisted;
+        }
+
 
         public async Task AddContingentRoleRemovedAsync(ulong roleId, ulong contingentRoleId) {
             if (contingentRolesRemoved == null) {
@@ -127,6 +154,15 @@ namespace DiscordBot6 {
             }
 
             return contingentRolesRemoved;
+        }
+
+
+        private async Task CacheRolesPersistedAsync() {
+            rolesPersisted = new HashSet<ulong>(await Repository.GetRolePersistsAsync(Parent.Id, Id));
+        }
+
+        private async Task CacheMutesPersistedAsync() {
+            // do stuff
         }
 
         private async Task CacheContingentRolesRemoved() {

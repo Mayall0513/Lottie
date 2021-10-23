@@ -22,7 +22,7 @@ namespace DiscordBot6.Timing {
                 SocketUser socketUser = DiscordBot6.Client.GetGuild(ServerId)?.GetUser(UserId);
 
                 if (socketUser is SocketGuildUser socketGuildUser && socketGuildUser.VoiceChannel?.Id == ChannelId && socketGuildUser.IsMuted) {
-                    server.TryAddVoiceStatusUpdated(socketUser.Id);
+                    server.TryAddVoiceStatusUpdated(socketGuildUser.Id);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
                 }
             }

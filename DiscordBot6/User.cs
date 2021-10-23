@@ -158,11 +158,11 @@ namespace DiscordBot6 {
 
 
         private async Task CacheRolesPersistedAsync() {
-            rolesPersisted = new HashSet<ulong>(await Repository.GetRolePersistsAsync(Parent.Id, Id));
+            rolesPersisted = new HashSet<ulong>(await Repository.GetRolesPersistsAsync(Parent.Id, Id));
         }
 
         private async Task CacheMutesPersistedAsync() {
-            // do stuff
+            mutesPersisted = new HashSet<ulong>(await Repository.GetMutePersistsAsync(Parent.Id, Id));
         }
 
         private async Task CacheContingentRolesRemoved() {

@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
@@ -8,16 +9,21 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
     public static class DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
+        public static CommandService commandService;
 
         public static ulong BotAccountId { get; private set; }
 
         public static async Task Main(string[] arguments) {
             Client = new DiscordSocketClient();
+
+            commandService = new CommandService();
+            await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             Client.Ready += Client_Ready;
             Client.MessageReceived += Client_MessageReceived;
@@ -36,7 +42,17 @@ namespace DiscordBot6 {
         }
 
         private static async Task Client_MessageReceived(SocketMessage socketMessage) {
-            SocketGuildChannel socketGuildChannel = (socketMessage.Channel as SocketGuildChannel);
+            if (!(socketMessage is SocketUserMessage socketUserMessage)) {
+                return;
+            }
+
+            int argumentIndex = 0;
+            if (!socketUserMessage.Author.IsBot && socketUserMessage.HasCharPrefix('+', ref argumentIndex)) {
+                SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
+                await commandService.ExecuteAsync(commandContext, argumentIndex, null);
+            }
+
+            SocketGuildChannel socketGuildChannel = (socketUserMessage.Channel as SocketGuildChannel);
             Server server = await Server.GetServerAsync(socketGuildChannel.Guild.Id);
             IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
 
@@ -44,7 +60,7 @@ namespace DiscordBot6 {
             // just a placeholder for the moment!
             foreach (PhraseRule phraseRule in phraseRules) {
                 if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
-                    await socketMessage.Channel.DeleteMessageAsync(socketMessage);
+                    await socketUserMessage.DeleteAsync();
                     break;
                 }
             }

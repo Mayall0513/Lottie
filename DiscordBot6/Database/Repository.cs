@@ -95,7 +95,7 @@ namespace DiscordBot6.Database {
 
         public static async Task AddOrUpdateUserAsync(User user) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            await connection.ExecuteAsync("sp_AddOrUpdate_User", new { ServerId = user.Parent.Id, user.Id, user.MutePersisted, user.DeafenPersisted }, commandType: CommandType.StoredProcedure);
+            await connection.ExecuteAsync("sp_AddOrUpdate_User", new { ServerId = user.Parent.Id, user.Id, user.GlobalMutePersisted, user.GlobalDeafenPersisted }, commandType: CommandType.StoredProcedure);
         }
 
         public static async Task<User> GetUserAsync(ulong serverId, ulong userId) {

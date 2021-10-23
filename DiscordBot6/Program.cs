@@ -56,27 +56,21 @@ namespace DiscordBot6 {
             SocketGuildUser socketGuildUser = (socketUser as SocketGuildUser);
             Server server = await Server.GetServerAsync(socketGuildUser.Guild.Id);
 
-            if (!(server.AutoMutePersist || server.AutoDeafenPersist)) { // this server does not want automatic mute or deafen persists
-                return;
-            }
-
             if (server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this is an event that we triggered and therefore should ignore
                 return;
             }
 
+            User user = await server.GetUserAsync(socketUser.Id);
+
             if (beforeVoiceState.VoiceChannel == null) { // they just joined
-                User user = await server.GetUserAsync(socketUser.Id);
+                if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is mute persisted and should be 
+                    server.TryAddVoiceStatusUpdated(socketUser.Id);
+                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+                }
 
-                if (user != null) {
-                    if (!afterVoiceState.IsMuted && user.MutePersisted) { // user is not muted and should be
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
-                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
-                    }
-
-                    if (!afterVoiceState.IsDeafened && user.DeafenPersisted) { // user is not deafened and should be
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
-                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
-                    }
+                if (!afterVoiceState.IsDeafened && user.GlobalDeafenPersisted) { // user is not deafened and should be
+                    server.TryAddVoiceStatusUpdated(socketUser.Id);
+                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
                 }
             }
 
@@ -87,10 +81,23 @@ namespace DiscordBot6 {
                 if ((server.AutoMutePersist && muteChanged) || (server.AutoDeafenPersist && deafenChanged)) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
                     User userSettings = await server.GetUserAsync(socketUser.Id);
 
-                    userSettings.MutePersisted = afterVoiceState.IsMuted;
-                    userSettings.DeafenPersisted = afterVoiceState.IsDeafened;
+                    userSettings.GlobalMutePersisted = afterVoiceState.IsMuted;
+                    userSettings.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
 
                     await server.SetUserSettingsAsync(socketGuildUser.Id, userSettings);
+                }
+            }
+
+            if (!user.GlobalMutePersisted) {
+                IEnumerable<ulong> mutePersists = await user.GetMutesPersistedAsync(); // get channel specific mute persists
+                bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
+
+                if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
+                    if (channelPersisted) { // user is about to be muted
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                    }
+
+                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = channelPersisted; });
                 }
             }
         }

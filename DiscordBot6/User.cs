@@ -10,8 +10,8 @@ namespace DiscordBot6 {
 
         public Server Parent { get; set; }
 
-        public bool MutePersisted { get; set; }
-        public bool DeafenPersisted { get; set; }
+        public bool GlobalMutePersisted { get; set; }
+        public bool GlobalDeafenPersisted { get; set; }
 
         private HashSet<ulong> mutesPersisted; // stores channel ids
         private HashSet<ulong> rolesPersisted; // stores role ids
@@ -19,8 +19,8 @@ namespace DiscordBot6 {
 
         public User(ulong id, bool mutePersisted, bool deafenPersisted) {
             Id = id;
-            MutePersisted = mutePersisted;
-            DeafenPersisted = deafenPersisted;
+            GlobalMutePersisted = mutePersisted;
+            GlobalDeafenPersisted = deafenPersisted;
         }
 
         public async Task AddRolePersistedAsync(ulong roleId) {

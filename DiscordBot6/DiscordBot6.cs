@@ -102,7 +102,7 @@ namespace DiscordBot6 {
                     userSettings.GlobalMutePersisted = afterVoiceState.IsMuted;
                     userSettings.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
 
-                    await server.SetUserSettingsAsync(socketGuildUser.Id, userSettings);
+                    await server.SetUserAsync(socketGuildUser.Id, userSettings);
                 }
             }
 

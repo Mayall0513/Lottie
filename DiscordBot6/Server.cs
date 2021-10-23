@@ -89,14 +89,14 @@ namespace DiscordBot6 {
             return users[id];
         }
 
-        public async Task SetUserSettingsAsync(ulong id, User userSettings) {
+        public async Task SetUserAsync(ulong id, User user) {
             if (!users.ContainsKey(id)) {
                 await GetUserAsync(id);
             }
 
             if (users.ContainsKey(id)) {
-                users[id] = userSettings;
-                await Repository.AddOrUpdateUserAsync(userSettings);
+                users[id] = user;
+                await Repository.AddOrUpdateUserAsync(user);
             }
         }
 

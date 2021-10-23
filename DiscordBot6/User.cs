@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot6.Database;
+using DiscordBot6.Timing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,50 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
-    public class MutePersist {
-        public ulong ServerId { get; set; }
-        public ulong UserId { get; set; }
-        public ulong ChannelId { get; set; }
-        public DateTime? Expiry { set {
-                if (value != null) {
-                    if (value.Value <= DateTime.UtcNow) {
-                        TimerCallback(null);
-                    }
-
-                    else {
-                        timer = new Timer(TimerCallback, null, value.Value - DateTime.UtcNow, TimeSpan.FromMilliseconds(-1));
-                    }
-                }
-            }
-        }
-
-        private Timer timer;
-
-
-#nullable enable
-        private async void TimerCallback(object? state) {
-#nullable restore
-            Server server = await Server.GetServerAsync(ServerId);
-            User user = await server.GetUserAsync(UserId);
-            await user?.RemoveMutePersistedAsync(ChannelId);
-
-            SocketGuild guild = Program.Client.GetGuild(ServerId);
-
-            if (guild != null) {
-                SocketGuildUser guildUser = guild.GetUser(UserId);
-                
-                if (guildUser is SocketGuildUser socketGuildUser && guildUser.VoiceChannel.Id == ChannelId && socketGuildUser.IsMuted) {
-                    server.TryAddVoiceStatusUpdated(UserId);
-                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
-                }
-            }
-        }
-
-        public async Task StopTimerAsync() {
-            await timer.DisposeAsync();
-        }
-    }
-
     public sealed class User {
         public ulong Id { get; }
 

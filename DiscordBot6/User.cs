@@ -13,19 +13,19 @@ namespace DiscordBot6 {
     public sealed class User {
         public ulong Id { get; }
 
-        public Server Parent { get; set; }
-
         public bool GlobalMutePersisted { get; set; }
         public bool GlobalDeafenPersisted { get; set; }
+
+        public Server Parent { get; set; }
 
         private ConcurrentDictionary<ulong, MutePersist> mutesPersisted; 
         private HashSet<ulong> rolesPersisted; // stores role ids
         private ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved;
 
-        public User(ulong id, bool mutePersisted, bool deafenPersisted) {
+        public User(ulong id, bool globalMutePersisted, bool globalDeafenPersist) {
             Id = id;
-            GlobalMutePersisted = mutePersisted;
-            GlobalDeafenPersisted = deafenPersisted;
+            GlobalMutePersisted = globalMutePersisted;
+            GlobalDeafenPersisted = globalDeafenPersist;
         }
 
         public async Task AddRolePersistedAsync(ulong roleId) {

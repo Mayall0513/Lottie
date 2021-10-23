@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
-    public static class Program {
+    public static class DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
 
         public static ulong BotAccountId { get; private set; }

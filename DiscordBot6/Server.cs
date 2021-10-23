@@ -1,4 +1,5 @@
-﻿using DiscordBot6.ContingentRoles;
+﻿using Discord;
+using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
 using System.Collections.Concurrent;
@@ -6,6 +7,16 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
+    public static class GuildExtensions {
+        public static async Task<Server> GetServerAsync(this IGuild guild) {
+            return await Server.GetServerAsync(guild.Id);
+        }
+
+        public static async Task<User> GetUserAsync(this IGuild guild, ulong id) {
+            return await (await GetServerAsync(guild)).GetUserAsync(id);
+        }
+    }
+
     public sealed class Server {
         private static readonly ConcurrentDictionary<ulong, Server> serverCache = new ConcurrentDictionary<ulong, Server>();
 

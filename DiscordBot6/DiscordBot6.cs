@@ -46,22 +46,23 @@ namespace DiscordBot6 {
                 return;
             }
 
-            int argumentIndex = 0;
-            if (!socketUserMessage.Author.IsBot && socketUserMessage.HasCharPrefix('+', ref argumentIndex)) {
-                SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
-                await commandService.ExecuteAsync(commandContext, argumentIndex, null);
-            }
+            if (socketMessage.Channel is SocketGuildChannel socketGuildChannel) { // message was sent in a server
+                int argumentIndex = 0;
+                if (!socketUserMessage.Author.IsBot && socketUserMessage.HasCharPrefix('+', ref argumentIndex)) {
+                    SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
+                    await commandService.ExecuteAsync(commandContext, argumentIndex, null);
+                }
 
-            SocketGuildChannel socketGuildChannel = (socketUserMessage.Channel as SocketGuildChannel);
-            Server server = await Server.GetServerAsync(socketGuildChannel.Guild.Id);
-            IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
+                Server server = await socketGuildChannel.Guild.GetServerAsync();
+                IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
 
-            // this is unfinished - i want to do a thing where the user can decide what happens
-            // just a placeholder for the moment!
-            foreach (PhraseRule phraseRule in phraseRules) {
-                if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
-                    await socketUserMessage.DeleteAsync();
-                    break;
+                // this is unfinished - i want to do a thing where the user can decide what happens
+                // just a placeholder for the moment!
+                foreach (PhraseRule phraseRule in phraseRules) {
+                    if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
+                        await socketUserMessage.DeleteAsync();
+                        break;
+                    }
                 }
             }
         }
@@ -71,48 +72,49 @@ namespace DiscordBot6 {
                 return; // there's nothing we want to do if a user leaves the channel
             }
 
-            SocketGuildUser socketGuildUser = (socketUser as SocketGuildUser);
-            Server server = await Server.GetServerAsync(socketGuildUser.Guild.Id);
+            if (socketUser is SocketGuildUser socketGuildUser) { // this happened in a server's voice channel
+                Server server = await socketGuildUser.Guild.GetServerAsync();
 
-            if (server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this is an event that we triggered and therefore should ignore
-                return;
-            }
-
-            User user = await server.GetUserAsync(socketUser.Id);
-
-            if (beforeVoiceState.VoiceChannel == null) { // they just joined
-                if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is mute persisted and should be 
-                    server.TryAddVoiceStatusUpdated(socketUser.Id);
-                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+                if (server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this is an event that we triggered and therefore should ignore
+                    return;
                 }
 
-                if (user.GlobalDeafenPersisted && !afterVoiceState.IsDeafened) { // user is not deafened and should be
-                    server.TryAddVoiceStatusUpdated(socketUser.Id);
-                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
+                User user = await server.GetUserAsync(socketUser.Id);
+
+                if (beforeVoiceState.VoiceChannel == null) { // they just joined
+                    if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is mute persisted and should be 
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+                    }
+
+                    if (user.GlobalDeafenPersisted && !afterVoiceState.IsDeafened) { // user is not deafened and should be
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
+                    }
                 }
-            }
 
-            else { // something else happened
-                bool muteChanged = beforeVoiceState.IsMuted != afterVoiceState.IsMuted;
-                bool deafenChanged = beforeVoiceState.IsDeafened != afterVoiceState.IsDeafened;
+                else { // something else happened
+                    bool muteChanged = beforeVoiceState.IsMuted != afterVoiceState.IsMuted;
+                    bool deafenChanged = beforeVoiceState.IsDeafened != afterVoiceState.IsDeafened;
 
-                if ((server.AutoMutePersist && muteChanged) || (server.AutoDeafenPersist && deafenChanged)) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
-                    User userSettings = await server.GetUserAsync(socketUser.Id);
+                    if ((server.AutoMutePersist && muteChanged) || (server.AutoDeafenPersist && deafenChanged)) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
+                        User userSettings = await server.GetUserAsync(socketUser.Id);
 
-                    userSettings.GlobalMutePersisted = afterVoiceState.IsMuted;
-                    userSettings.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
+                        userSettings.GlobalMutePersisted = afterVoiceState.IsMuted;
+                        userSettings.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
 
-                    await server.SetUserAsync(socketGuildUser.Id, userSettings);
+                        await server.SetUserAsync(socketGuildUser.Id, userSettings);
+                    }
                 }
-            }
 
-            if (!user.GlobalMutePersisted) {
-                IEnumerable<ulong> mutePersists = await user.GetMutesPersistedAsync(); // get channel specific mute persists
-                bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
+                if (!user.GlobalMutePersisted) {
+                    IEnumerable<ulong> mutePersists = await user.GetMutesPersistedAsync(); // get channel specific mute persists
+                    bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
-                if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
-                    server.TryAddVoiceStatusUpdated(socketUser.Id);
-                    await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = channelPersisted; });
+                    if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
+                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = channelPersisted; });
+                    }
                 }
             }
         }
@@ -131,7 +133,7 @@ namespace DiscordBot6 {
                 return;
             }
 
-            Server server = await Server.GetServerAsync(beforeUser.Guild.Id);
+            Server server = await beforeUser.Guild.GetServerAsync();
             User user = await server.GetUserAsync(beforeUser.Id);
 
             if (server.CheckAndRemoveRoleUpdated(user.Id)) { // this is an event that we triggered and therefore should ignore
@@ -207,7 +209,7 @@ namespace DiscordBot6 {
         }
 
         private static async Task Client_UserJoined(SocketGuildUser socketUser) {
-            Server server = await Server.GetServerAsync(socketUser.Guild.Id);
+            Server server = await socketUser.Guild.GetServerAsync();
             User user = await server.GetUserAsync(socketUser.Id);
             IEnumerable<ulong> rolesPersisted = await user.GetRolesPersistedAsync();
 

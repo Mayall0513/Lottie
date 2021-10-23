@@ -17,7 +17,7 @@ namespace DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
         public static CommandService commandService;
 
-        public static ulong BotAccountId { get; private set; }
+        public static ulong BotAccountId { get => Client.CurrentUser.Id; }
         public const char DiscordNewLine = '\n';
 
         public static async Task Main(string[] arguments) {
@@ -26,7 +26,6 @@ namespace DiscordBot6 {
             commandService = new CommandService();
             await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
-            Client.Ready += Client_Ready;
             Client.MessageReceived += Client_MessageReceived;
             Client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
             Client.GuildMemberUpdated += Client_GuildMemberUpdated;
@@ -35,11 +34,6 @@ namespace DiscordBot6 {
             await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
             await Client.StartAsync();
             await Task.Delay(-1);
-        }
-
-        private static async Task Client_Ready() {
-            BotAccountId = Client.CurrentUser.Id;
-            await Repository.GetMutePersistsAllAsync(); // creates timers
         }
 
         private static async Task Client_MessageReceived(SocketMessage socketMessage) {
@@ -82,7 +76,7 @@ namespace DiscordBot6 {
                 }
 
                 if (beforeVoiceState.VoiceChannel == null) { // they just joined
-                    if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is mute persisted and should be 
+                    if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is not muted and should be 
                         user.IncrementVoiceStatusUpdated();
                         await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                     }
@@ -97,17 +91,22 @@ namespace DiscordBot6 {
                     bool muteChanged = beforeVoiceState.IsMuted != afterVoiceState.IsMuted;
                     bool deafenChanged = beforeVoiceState.IsDeafened != afterVoiceState.IsDeafened;
 
-                    if ((server.AutoMutePersist && muteChanged) || (server.AutoDeafenPersist && deafenChanged)) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
-                        User userSettings = await server.GetUserAsync(socketUser.Id);
+                    if (muteChanged) {
+                        if (!afterVoiceState.IsMuted) {
+                            await user.RemoveMutePersistedAsync(afterVoiceState.VoiceChannel.Id);
+                        }  
 
-                        userSettings.GlobalMutePersisted = afterVoiceState.IsMuted;
-                        userSettings.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
-
-                        await server.SetUserAsync(socketGuildUser.Id, userSettings);
+                        user.GlobalMutePersisted = afterVoiceState.IsMuted;
                     }
+
+                    if (server.AutoDeafenPersist && deafenChanged) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
+                        user.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
+                    }
+
+                    await server.SetUserAsync(socketGuildUser.Id, user);
                 }
 
-                if (!user.GlobalMutePersisted) {
+                if ((beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
                     IEnumerable<ulong> mutePersists = await user.GetMutesPersistedAsync(); // get channel specific mute persists
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 

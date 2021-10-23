@@ -18,6 +18,7 @@ namespace DiscordBot6 {
         public static CommandService commandService;
 
         public static ulong BotAccountId { get; private set; }
+        public const char DiscordNewLine = '\n';
 
         public static async Task Main(string[] arguments) {
             Client = new DiscordSocketClient();

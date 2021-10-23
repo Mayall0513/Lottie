@@ -1,72 +1,45 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot6.Helpers;
 using System;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Commands {
     [Group("channelmute")]
     public class ChannelMute : ModuleBase<SocketCommandContext> {
+        public static readonly TimeSpan MinimumMuteTimeSpan = TimeSpan.FromSeconds(30);
+
         [Command]
         [Summary("Mutes a user in a specific voice channel. With an optional time limit.")]
-        public async Task Command(IUser user, string[] arguments) {
-            SocketGuild guild = Context.Guild;
-            SocketGuildUser guildUser = guild.GetUser(user.Id);
+        public async Task Command(IUser user, params string[] arguments) {
+            SocketGuildUser guildUser = Context.Guild.GetUser(user.Id);
+            Server server = await Context.Guild.GetServerAsync();
+            User serverUser = await server.GetUserAsync(user.Id);
 
             if (guildUser == null) { // the user whose id was given does not exist
-                // error
+                await Context.Channel.SendMessageAsync($"Could not find user with ID `{user.Id}`.");
                 return;
             }
 
-            if (guildUser.VoiceChannel == null) { // the user whose id was given is not in a vc
-                // error
+            if (guildUser.VoiceChannel == null) { // the user whose id was given is not in a voice chat
+                await Context.Channel.SendMessageAsync($"User is not in a voice channel.");
                 return;
             }
 
-            int days = 0;
-            int hours = 0; 
-            int minutes = 0;
+            bool parsedTimeSpan = CommandHelper.GetTimeSpan(arguments, out TimeSpan timeSpan, out string errors, MinimumMuteTimeSpan);
 
-            foreach (string argument in arguments) {
-                if (int.TryParse(argument[0..^1], out int numArgument)) {
-                    if (numArgument <= 0) { // a negative time span was given
-                        // error
-                        continue;
-                    }
+            if (parsedTimeSpan) {
+                await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, DateTime.UtcNow + timeSpan);
 
-                    switch (argument[^1]) {
-                        case 'w':
-                            days += numArgument * 7;
-                            break;
-
-                        case 'd':
-                            days += numArgument;
-                            break;
-
-                        case 'h':
-                            hours += numArgument;
-                            break;
-
-                        case 'm':
-                            minutes += numArgument;
-                            break;
-                    }
+                if (!guildUser.IsMuted) {
+                    server.TryAddVoiceStatusUpdated(guildUser.Id);
+                    await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
             }
 
-            TimeSpan difference = new TimeSpan(days, hours, minutes, 0);
-            if (difference == TimeSpan.Zero) { // no time was given OR all time that was given was 0
-                // error
-                return;
-            }
-
-            Server server = await guild.GetServerAsync();
-            User serverUser = await server.GetUserAsync(user.Id);
-            await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, DateTime.UtcNow + difference);
-
-            if (!guildUser.IsMuted) {
-                server.TryAddVoiceStatusUpdated(guildUser.Id);
-                await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+            else {
+                await Context.Channel.SendMessageAsync(errors);
             }
         }
     }

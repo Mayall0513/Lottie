@@ -26,7 +26,7 @@ namespace DiscordBot6.Timing {
         private Timer timer;
 
         ~TimedObject() {
-            timer.Dispose();
+            timer?.Dispose();
         }
 
         public abstract void OnExpiry(object state);

@@ -1,12 +1,9 @@
-﻿using Discord;
-using Discord.WebSocket;
-using DiscordBot6.Database;
+﻿using DiscordBot6.Database;
 using DiscordBot6.Timing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {

@@ -1,7 +1,4 @@
 ﻿using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DiscordBot6.Timing {
     public sealed class MutePersist : TimedObject {

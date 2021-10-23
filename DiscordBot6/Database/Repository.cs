@@ -28,7 +28,7 @@ namespace DiscordBot6.Database {
         }
 
 
-        public static async Task<PhraseRule[]> GetPhraseRulesAsync(ulong serverId) {
+        public static async Task<IEnumerable<PhraseRule>> GetPhraseRulesAsync(ulong serverId) {
             List<PhraseRule> phraseRules = new List<PhraseRule>();
             Dictionary<ulong, PhraseRuleModel> phraseRuleModels = new Dictionary<ulong, PhraseRuleModel>();
 
@@ -89,7 +89,7 @@ namespace DiscordBot6.Database {
                 phraseRules.Add(phraseRuleModel.CreateConcrete());
             }
 
-            return phraseRules.ToArray();
+            return phraseRules;
         }
 
 
@@ -140,29 +140,34 @@ namespace DiscordBot6.Database {
             await transaction.CommitAsync();
         }
 
-        public static async Task<ulong[]> GetRolesPersistsAsync(ulong serverId, ulong userId) {
+        public static async Task<IEnumerable<ulong>> GetRolesPersistsAsync(ulong serverId, ulong userId) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            return (await connection.QueryAsync<ulong>("sp_Get_RolePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure)).ToArray();
+            return await connection.QueryAsync<ulong>("sp_Get_RolePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure);
         }
 
 
-        public static async Task AddMutePersistedAsync(ulong serverId, ulong userId, ulong channelId) {
+        public static async Task AddMutePersistedAsync(ulong serverId, ulong userId, ulong channelId, DateTime? expiry) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            await connection.ExecuteAsync("sp_Add_MutePersist", new { serverId, userId, channelId }, commandType: CommandType.StoredProcedure);
+            await connection.ExecuteAsync("sp_Add_MutePersist", new { serverId, userId, channelId, expiry }, commandType: CommandType.StoredProcedure);
         }
 
-        public static async Task RemoveMutedPersistedAsync(ulong serverId, ulong userId, ulong channelId) {
+        public static async Task RemoveMutePersistedAsync(ulong serverId, ulong userId, ulong channelId) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             await connection.ExecuteAsync("sp_Remove_MutePersist", new { serverId, userId, channelId }, commandType: CommandType.StoredProcedure);
         }
 
-        public static async Task<ulong[]> GetMutePersistsAsync(ulong serverId, ulong userId) {
+        public static async Task<IEnumerable<MutePersist>> GetMutePersistsAsync(ulong serverId, ulong userId) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            return (await connection.QueryAsync<ulong>("sp_Get_MutePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure)).ToArray();
+            return await connection.QueryAsync<MutePersist>("sp_Get_MutePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure);
+        }
+        
+        public static async Task<IEnumerable<MutePersist>> GetMutePersistsAllAsync() {
+            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+            return await connection.QueryAsync<MutePersist>("sp_Get_MutePersists_All", null, commandType: CommandType.StoredProcedure);
         }
 
 
-        public static async Task<ContingentRole[]> GetContingentRulesAsync(ulong serverId) {
+        public static async Task<IEnumerable<ContingentRole>> GetContingentRulesAsync(ulong serverId) {
             List<ContingentRole> contingentRoles = new List<ContingentRole>();
             Dictionary<ulong, ContingentRoleModel> contingentRoleModels = new Dictionary<ulong, ContingentRoleModel>();
 
@@ -184,7 +189,7 @@ namespace DiscordBot6.Database {
                 contingentRoles.Add(contingentRoleModel.CreateConcrete());
             }
 
-            return contingentRoles.ToArray();
+            return contingentRoles;
         }
 
 

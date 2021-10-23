@@ -75,21 +75,20 @@ namespace DiscordBot6 {
 
             if (socketUser is SocketGuildUser socketGuildUser) { // this happened in a server's voice channel
                 Server server = await socketGuildUser.Guild.GetServerAsync();
+                User user = await server.GetUserAsync(socketUser.Id);
 
-                if (server.CheckAndRemoveVoiceStatusUpdated(socketGuildUser.Id)) { // this is an event that we triggered and therefore should ignore
+                if (user.DecrementVoiceStatusUpdated()) { // this is an event that we triggered and therefore should ignore
                     return;
                 }
 
-                User user = await server.GetUserAsync(socketUser.Id);
-
                 if (beforeVoiceState.VoiceChannel == null) { // they just joined
                     if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is mute persisted and should be 
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        user.IncrementVoiceStatusUpdated();
                         await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                     }
 
                     if (user.GlobalDeafenPersisted && !afterVoiceState.IsDeafened) { // user is not deafened and should be
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        user.IncrementVoiceStatusUpdated();
                         await socketGuildUser.ModifyAsync(userProperties => { userProperties.Deaf = true; });
                     }
                 }
@@ -113,7 +112,7 @@ namespace DiscordBot6 {
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
                     if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
-                        server.TryAddVoiceStatusUpdated(socketUser.Id);
+                        user.IncrementVoiceStatusUpdated();
                         await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = channelPersisted; });
                     }
                 }
@@ -137,7 +136,7 @@ namespace DiscordBot6 {
             Server server = await beforeUser.Guild.GetServerAsync();
             User user = await server.GetUserAsync(beforeUser.Id);
 
-            if (server.CheckAndRemoveRoleUpdated(user.Id)) { // this is an event that we triggered and therefore should ignore
+            if (user.DecrementRolesUpdated()) { // this is an event that we triggered and therefore should ignore
                 return;
             }
 
@@ -166,7 +165,7 @@ namespace DiscordBot6 {
                 }
 
                 if (rolesToRemove.Count > 0) { // there are roles we need to remove
-                    server.TryAddRoleUpdated(user.Id);
+                    user.IncrementRolesUpdated();
                     await beforeUser.RemoveRolesAsync(rolesToRemove);
 
                     if (server.AutoRolePersist) {
@@ -176,14 +175,14 @@ namespace DiscordBot6 {
             }
 
             if (rolesRemoved.Count > 0) { // the user had roles removed
-                ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved = await user.GetContingentRolesRemoved();
+                ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved = await user.GetContingentRolesRemovedAsync();
 
                 foreach (ulong bannedRole in contingentRolesRemoved.Keys) {
                     if (rolesRemoved.Contains(bannedRole)) { // the user had one of their roles removed
                         HashSet<ulong> rolesToAdd = contingentRolesRemoved[bannedRole];
 
                         if (rolesToAdd.Count > 0) { // there are roles that were taken when the user was given a contingent role. we need to give those back
-                            server.TryAddRoleUpdated(user.Id);
+                            user.IncrementRolesUpdated();
 
                             await beforeUser.AddRolesAsync(rolesToAdd);
                             await user.RemoveContingentRoleRemovedAsync(bannedRole);
@@ -210,12 +209,11 @@ namespace DiscordBot6 {
         }
 
         private static async Task Client_UserJoined(SocketGuildUser socketUser) {
-            Server server = await socketUser.Guild.GetServerAsync();
-            User user = await server.GetUserAsync(socketUser.Id);
+            User user = await socketUser.Guild.GetUserAsync(socketUser.Id);
             IEnumerable<ulong> rolesPersisted = await user.GetRolesPersistedAsync();
 
             if (rolesPersisted.Any()) { // this user has role persists on this server
-                server.TryAddRoleUpdated(socketUser.Id);
+                user.IncrementRolesUpdated();
                 await socketUser.AddRolesAsync(rolesPersisted);
             }
         }

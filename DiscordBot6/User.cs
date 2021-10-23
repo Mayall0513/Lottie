@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
@@ -19,11 +20,18 @@ namespace DiscordBot6 {
         private HashSet<ulong> rolesPersisted; // stores role ids
         private ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved;
 
+
+        private int voiceStatusUpdated = 0;
+        private int rolesUpdated = 0;
+
+
         public User(ulong id, bool globalMutePersisted, bool globalDeafenPersist) {
             Id = id;
             GlobalMutePersisted = globalMutePersisted;
             GlobalDeafenPersisted = globalDeafenPersist;
         }
+
+
 
         public async Task AddRolePersistedAsync(ulong roleId) {
             if (rolesPersisted == null) {
@@ -116,7 +124,7 @@ namespace DiscordBot6 {
 
         public async Task AddContingentRoleRemovedAsync(ulong roleId, ulong contingentRoleId) {
             if (contingentRolesRemoved == null) {
-                await CacheContingentRolesRemoved();
+                await CacheContingentRolesRemovedAsync();
             }
 
             if (!contingentRolesRemoved.ContainsKey(roleId)) {
@@ -130,7 +138,7 @@ namespace DiscordBot6 {
 
         public async Task AddContingentRolesRemovedAsync(ulong roleId, IEnumerable<ulong> contingentRoleIds) {
             if (contingentRolesRemoved == null) {
-                await CacheContingentRolesRemoved();
+                await CacheContingentRolesRemovedAsync();
             }
 
             if (!contingentRolesRemoved.ContainsKey(roleId)) {
@@ -147,7 +155,7 @@ namespace DiscordBot6 {
 
         public async Task RemoveContingentRoleRemovedAsync(ulong roleId) {
             if (contingentRolesRemoved == null) {
-                await CacheContingentRolesRemoved();
+                await CacheContingentRolesRemovedAsync();
             }
 
             if (contingentRolesRemoved.TryRemove(roleId, out _)) {
@@ -155,9 +163,9 @@ namespace DiscordBot6 {
             }
         }
 
-        public async Task<ConcurrentDictionary<ulong, HashSet<ulong>>> GetContingentRolesRemoved() {
+        public async Task<ConcurrentDictionary<ulong, HashSet<ulong>>> GetContingentRolesRemovedAsync() {
             if (contingentRolesRemoved == null) {
-                await CacheContingentRolesRemoved();
+                await CacheContingentRolesRemovedAsync();
             }
 
             return contingentRolesRemoved;
@@ -177,8 +185,36 @@ namespace DiscordBot6 {
             }
         }
 
-        private async Task CacheContingentRolesRemoved() {
+        private async Task CacheContingentRolesRemovedAsync() {
             contingentRolesRemoved = new ConcurrentDictionary<ulong, HashSet<ulong>>(await Repository.GetActiveContingentRolesAsync(Parent.Id, Id));
+        }
+
+
+        public void IncrementVoiceStatusUpdated() {
+            Interlocked.Increment(ref voiceStatusUpdated);
+        }
+
+        public bool DecrementVoiceStatusUpdated() {
+            if (voiceStatusUpdated > 0) {
+                Interlocked.Decrement(ref voiceStatusUpdated);
+                return true;
+            }
+
+            return false;
+        }
+
+
+        public void IncrementRolesUpdated() {
+            Interlocked.Increment(ref rolesUpdated);
+        }
+
+        public bool DecrementRolesUpdated() {
+            if (rolesUpdated > 0) {
+                Interlocked.Decrement(ref rolesUpdated);
+                return true;
+            }
+
+            return false;
         }
     }
 }

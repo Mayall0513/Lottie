@@ -14,8 +14,6 @@ namespace DiscordBot6.Commands {
         [Summary("Mutes a user in a specific voice channel. With an optional time limit.")]
         public async Task Command(IUser user, params string[] arguments) {
             SocketGuildUser guildUser = Context.Guild.GetUser(user.Id);
-            Server server = await Context.Guild.GetServerAsync();
-            User serverUser = await server.GetUserAsync(user.Id);
 
             if (guildUser == null) { // the user whose id was given does not exist
                 await Context.Channel.SendMessageAsync($"Could not find user with ID `{user.Id}`.");
@@ -30,10 +28,11 @@ namespace DiscordBot6.Commands {
             bool parsedTimeSpan = CommandHelper.GetTimeSpan(arguments, out TimeSpan timeSpan, out string errors, MinimumMuteTimeSpan);
 
             if (parsedTimeSpan) {
+                User serverUser = await Context.Guild.GetUserAsync(user.Id);
                 await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, DateTime.UtcNow + timeSpan);
 
                 if (!guildUser.IsMuted) {
-                    server.TryAddVoiceStatusUpdated(guildUser.Id);
+                    serverUser.IncrementVoiceStatusUpdated();
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
             }

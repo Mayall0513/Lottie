@@ -20,8 +20,6 @@ namespace DiscordBot6 {
     public sealed class Server {
         private static readonly ConcurrentDictionary<ulong, Server> serverCache = new ConcurrentDictionary<ulong, Server>();
 
-        private readonly HashSet<ulong> userVoicesStatusUpdated = new HashSet<ulong>();
-        private readonly HashSet<ulong> userRolesUpdated = new HashSet<ulong>();
         private readonly ConcurrentDictionary<ulong, User> users = new ConcurrentDictionary<ulong, User>();
 
         private IReadOnlyCollection<PhraseRule> phraseRules;
@@ -41,6 +39,7 @@ namespace DiscordBot6 {
             AutoRolePersist = autoRolePersist;
         }
 
+
         public static async Task<Server> GetServerAsync(ulong id) {
             if (!serverCache.ContainsKey(id)) {
                 Server newServer = await Repository.GetServerAsync(id);
@@ -56,9 +55,11 @@ namespace DiscordBot6 {
             return serverCache[id];
         }
 
+
         public static bool ResetServerCache(ulong id) {
             return serverCache.TryRemove(id, out _);
         }
+
 
         public async Task<IEnumerable<PhraseRule>> GetPhraseRuleSetsAsync() {
             if (phraseRules == null) {
@@ -68,6 +69,7 @@ namespace DiscordBot6 {
             return phraseRules;
         }
 
+
         public async Task<IEnumerable<ContingentRole>> GetContingentRolesAsync() {
             if (contingentRoles == null) {
                 contingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
@@ -75,6 +77,7 @@ namespace DiscordBot6 {
 
             return contingentRoles;
         }
+
 
         public async Task<User> GetUserAsync(ulong id) {
             if (!users.ContainsKey(id)) {
@@ -109,32 +112,6 @@ namespace DiscordBot6 {
                 users[id] = user;
                 await Repository.AddOrUpdateUserAsync(user);
             }
-        }
-
-        public bool TryAddVoiceStatusUpdated(ulong userId) {
-            return userVoicesStatusUpdated.Add(userId);
-        }
-
-        public bool CheckAndRemoveVoiceStatusUpdated(ulong userId) {
-            if (userVoicesStatusUpdated.Contains(userId)) {
-                userVoicesStatusUpdated.Remove(userId);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool TryAddRoleUpdated(ulong userId) {
-            return userRolesUpdated.Add(userId);
-        }
-
-        public bool CheckAndRemoveRoleUpdated(ulong userId) {
-            if (userRolesUpdated.Contains(userId)) {
-                userRolesUpdated.Remove(userId);
-                return true;
-            }
-
-            return false;
         }
     }
 }

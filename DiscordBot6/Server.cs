@@ -67,9 +67,20 @@ namespace DiscordBot6 {
 
         public async Task<User> GetUserAsync(ulong id) {
             if (!users.ContainsKey(id)) {
-                User user = (await Repository.GetUserAsync(Id, id)) ?? new User(id, false, false);
+                User user = await Repository.GetUserAsync(Id, id);
 
-                user.Parent = this;
+                if (user == null) {
+                    user = new User(id, false, false) {
+                        Parent = this
+                    };
+
+                    await Repository.AddOrUpdateUserAsync(user);
+                }
+
+                else {
+                    user.Parent = this;
+                }
+                
                 users.TryAdd(id, user);
 
                 return user;

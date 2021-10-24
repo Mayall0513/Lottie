@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
+using DiscordBot6.Timing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ namespace DiscordBot6 {
             commandService = new CommandService();
             await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
+            Client.Ready += Client_Ready;
             Client.MessageReceived += Client_MessageReceived;
             Client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
             Client.GuildMemberUpdated += Client_GuildMemberUpdated;
@@ -34,6 +36,23 @@ namespace DiscordBot6 {
             await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
             await Client.StartAsync();
             await Task.Delay(-1);
+        }
+
+        private static async Task Client_Ready() {
+            await PrecacheTimedObjects();
+        }
+
+        private static async Task PrecacheTimedObjects() {
+            // Temporary mute persists
+
+            IEnumerable<MutePersist> mutePersists = await Repository.GetMutePersistsAllAsync();
+
+            foreach (MutePersist mutePersist in mutePersists) {
+                Server server = await Server.GetServerAsync(mutePersist.ServerId);
+                User user = await server.GetUserAsync(mutePersist.UserId);
+
+                user.PrecacheMutePersisted(mutePersist);
+            }
         }
 
         private static async Task Client_MessageReceived(SocketMessage socketMessage) {
@@ -107,7 +126,7 @@ namespace DiscordBot6 {
                 }
 
                 if ((beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
-                    IEnumerable<ulong> mutePersists = await user.GetMutesPersistedAsync(); // get channel specific mute persists
+                    IEnumerable<ulong> mutePersists = user.GetMutesPersisted(); // get channel specific mute persists
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
                     if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed

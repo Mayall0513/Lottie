@@ -32,7 +32,9 @@ namespace DiscordBot6 {
         public bool AutoDeafenPersist { get; }
         public bool AutoRolePersist { get; }
 
-        private RoleConstraint tempMuteRoleConstraint;
+        private CRUConstraints tempMuteConstraints;
+        private CRUConstraints muteConstraints;
+        private CRUConstraints giveRolesConstraints;
 
         public Server(ulong id, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist) {
             Id = id;
@@ -41,7 +43,6 @@ namespace DiscordBot6 {
             AutoDeafenPersist = autoDeafenPersist;
             AutoRolePersist = autoRolePersist;
         }
-
 
         public static async Task<Server> GetServerAsync(ulong id) {
             if (!serverCache.ContainsKey(id)) {
@@ -58,7 +59,6 @@ namespace DiscordBot6 {
             return serverCache[id];
         }
 
-
         public static bool ResetServerCache(ulong id) {
             return serverCache.TryRemove(id, out _);
         }
@@ -71,7 +71,6 @@ namespace DiscordBot6 {
 
             return phraseRules;
         }
-
 
         public async Task<IEnumerable<ContingentRole>> GetContingentRolesAsync() {
             if (contingentRoles == null) {
@@ -118,12 +117,28 @@ namespace DiscordBot6 {
         }
 
 
-        public async Task<bool> UserMayTempMute(IEnumerable<ulong> roleIds) {
-            if (tempMuteRoleConstraint == null) {
-                tempMuteRoleConstraint = await Repository.GetTempMuteConstraintsAsync(Id);
+        public async Task<bool> UserMayTempMute(ulong userId, IEnumerable<ulong> roleIds) {
+            if (tempMuteConstraints == null) {
+                tempMuteConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.TEMPMUTE);
             }
 
-            return tempMuteRoleConstraint.Matches(roleIds);
+            return tempMuteConstraints.Matches(null, roleIds, userId);
+        }
+
+        public async Task<bool> UserMayMute(ulong userId, IEnumerable<ulong> roleIds) {
+            if (muteConstraints == null) {
+                muteConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.MUTE);
+            }
+
+            return muteConstraints.Matches(null, roleIds, userId);
+        }
+
+        public async Task<bool> UserMayGiveRoles(ulong userId, IEnumerable<ulong> roleIds) {
+            if (giveRolesConstraints == null) {
+                giveRolesConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.GIVEROLES);
+            }
+
+            return giveRolesConstraints.Matches(null, roleIds, userId);
         }
     }
 }

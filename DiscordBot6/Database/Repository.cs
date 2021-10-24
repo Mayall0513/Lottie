@@ -18,6 +18,17 @@ using System.Threading.Tasks;
 
 namespace DiscordBot6.Database {
     public static class Repository {
+        public enum GenericConstraintTypes : uint {
+            USER,
+            CHANNEL
+        }
+
+        public enum ConstraintIntents : uint {
+            TEMPMUTE,
+            MUTE,
+            GIVEROLES
+        }
+
         public static async Task<Server> GetServerAsync(ulong id) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             ServerModel serverModel = await connection.QuerySingleOrDefaultAsync<ServerModel>("sp_Get_Server", new { id }, commandType: CommandType.StoredProcedure);
@@ -42,28 +53,6 @@ namespace DiscordBot6.Database {
                 PhraseRuleModel phraseRuleModel = new PhraseRuleModel() { Id = phraseRuleElement.Id, ServerId = phraseRuleElement.ServerId, Text = phraseRuleElement.Text, ManualPattern = phraseRuleElement.ManualPattern, Pattern = phraseRuleElement.PhrasePattern, PcreOptions = phraseRuleElement.PcreOptions };
                 if (!phraseRuleModels.TryAdd(phraseRuleModel.Id, phraseRuleModel)) {
                     phraseRuleModel = phraseRuleModels[phraseRuleModel.Id];
-                }
-
-                if (phraseRuleElement.ChannelId != null) {
-                    phraseRuleModel.ChannelConstraints.Whitelist = phraseRuleElement.ChannelWhitelist;
-                    phraseRuleModel.ChannelConstraints.Requirements.Add(phraseRuleElement.ChannelId);
-                }
-
-                if (phraseRuleElement.UserId != null) {
-                    phraseRuleModel.UserConstraints.Whitelist = phraseRuleElement.UsertWhitelist;
-                    phraseRuleModel.UserConstraints.Requirements.Add(phraseRuleElement.UserId);
-                }
-
-                if (phraseRuleElement.RoleId != null) {
-                    if (phraseRuleElement.RoleWhitelist) {
-                        phraseRuleModel.RoleConstraints.WhitelistStrict = phraseRuleElement.WhitelistStrict;
-                        phraseRuleModel.RoleConstraints.WhitelistRequirements.Add(phraseRuleElement.RoleId);
-                    }
-
-                    else {
-                        phraseRuleModel.RoleConstraints.BlacklistStrict = phraseRuleElement.BlacklistStrict;
-                        phraseRuleModel.RoleConstraints.BlacklistRequirements.Add(phraseRuleElement.RoleId);
-                    }
                 }
 
                 if (phraseRuleElement.PhraseConstraintType != null) {
@@ -241,28 +230,42 @@ namespace DiscordBot6.Database {
         }
 
 
-        public static async Task<RoleConstraint> GetTempMuteConstraintsAsync(ulong serverId) {
-            RoleConstraintModel roleConstraintModel = new RoleConstraintModel();
+        public static async Task<CRUConstraints> GetConstraints(ulong serverId, ConstraintIntents intent) {
+            CRUConstraintsModel crucConstraintsModel = new CRUConstraintsModel();
 
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            IEnumerable<dynamic> roleConstraintElements = await connection.QueryAsync<dynamic>("sp_Get_TempMute_Roles", new { serverId }, commandType: CommandType.StoredProcedure);
+            IEnumerable<dynamic> genericConstraintElements = await connection.QueryAsync<dynamic>("sp_Get_Constraints_Generic", new { serverId, intent }, commandType: CommandType.StoredProcedure);
+            IEnumerable<dynamic> roleConstraintElements = await connection.QueryAsync<dynamic>("sp_Get_Constraints_Roles", new { serverId, intent }, commandType: CommandType.StoredProcedure);
 
-            foreach (dynamic roleConstraintElement in roleConstraintElements) {
-                if (roleConstraintElement.RoleWhitelist) {
-                    roleConstraintModel.WhitelistStrict = roleConstraintElement.WhitelistStrict;
-                    roleConstraintModel.WhitelistRequirements.Add(roleConstraintElement.RoleId);
-                }
+            foreach (dynamic genericConstraintElement in genericConstraintElements) {
+                switch (genericConstraintElement.ConstraintType) {
+                    case GenericConstraintTypes.USER:
+                        crucConstraintsModel.UserConstraintModel.Whitelist = genericConstraintElement.Whitelist;
+                        crucConstraintsModel.UserConstraintModel.Requirements.Add(genericConstraintElement.Data);
+                        break;
 
-                else {
-                    roleConstraintModel.BlacklistStrict = roleConstraintElement.BlacklistStrict;
-                    roleConstraintModel.BlacklistRequirements.Add(roleConstraintElement.RoleId);
+                    case GenericConstraintTypes.CHANNEL:
+                        crucConstraintsModel.ChannelConstraintModel.Whitelist = genericConstraintElement.Whitelist;
+                        crucConstraintsModel.ChannelConstraintModel.Requirements.Add(genericConstraintElement.Data);
+                        break;
                 }
             }
 
-            return roleConstraintModel.CreateConcrete();
-        }
-        
+            foreach (dynamic roleConstraintElement in roleConstraintElements) {
+                crucConstraintsModel.RoleConstraintModel.WhitelistStrict = roleConstraintElement.WhitelistStrict;
+                crucConstraintsModel.RoleConstraintModel.BlacklistStrict = roleConstraintElement.BlacklistStrict;
 
+                if (roleConstraintElement.Whitelist) {
+                    crucConstraintsModel.RoleConstraintModel.WhitelistRequirements.Add(roleConstraintElement.RoleId);
+                }
+
+                else {
+                    crucConstraintsModel.RoleConstraintModel.BlacklistRequirements.Add(roleConstraintElement.RoleId);
+                }
+            }
+
+            return crucConstraintsModel.CreateConcrete();
+        }
 
         // we need this because the models are value types. due to this we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason
         public static IEnumerable<O> ConvertValues<T, O>(ICollection<T> collection, Func<T, O> selector) {

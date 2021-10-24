@@ -1,4 +1,5 @@
-﻿using DiscordBot6.Database.Models.Constraints;
+﻿using DiscordBot6.Constraints;
+using DiscordBot6.Database.Models.Constraints;
 using DiscordBot6.PhraseRules;
 using PCRE;
 using System.Collections.Generic;
@@ -13,9 +14,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public string Pattern { get; set; }
         public long? PcreOptions { get; set; }
 
-        public GenericConstraintModel UserConstraints { get; } = new GenericConstraintModel();
-        public GenericConstraintModel ChannelConstraints { get; } = new GenericConstraintModel();
-        public RoleConstraintModel RoleConstraints { get; } = new RoleConstraintModel();
+        public CRUConstraints Constraints { get; set; }
 
         public Dictionary<ulong, PhraseRuleModifierModel> PhraseRules { get; } = new Dictionary<ulong, PhraseRuleModifierModel>();
         public Dictionary<ulong, PhraseHomographOverrideModel> HomographOverrides { get; } = new Dictionary<ulong, PhraseHomographOverrideModel>();
@@ -24,10 +23,8 @@ namespace DiscordBot6.Database.Models.PhraseRules {
         public PhraseRule CreateConcrete() {
             IEnumerable<PhraseRuleModifier> phraseRuleModifiers = Repository.ConvertValues(PhraseRules.Values, x => x.CreateConcrete());
 
-            PhraseRuleConstraints phraseRuleConstraints = new PhraseRuleConstraints(UserConstraints.CreateConcrete(), ChannelConstraints.CreateConcrete(), RoleConstraints.CreateConcrete());
-            
             if (Pattern == null) {
-                return new PhraseRule(Pattern, (PcreOptions) (PcreOptions ?? 0), phraseRuleConstraints, phraseRuleModifiers);
+                return new PhraseRule(Pattern, (PcreOptions) (PcreOptions ?? 0), Constraints, phraseRuleModifiers);
             }
 
             else {
@@ -36,7 +33,7 @@ namespace DiscordBot6.Database.Models.PhraseRules {
 
                 PhraseRulePhraseModifiers phraseRulePhraseModifiers = new PhraseRulePhraseModifiers(phraseRuleModifiers, homographOverrides, substringModifiers);
 
-                return new PhraseRule(Id, Text, phraseRuleConstraints, phraseRulePhraseModifiers);
+                return new PhraseRule(Id, Text, Constraints, phraseRulePhraseModifiers);
             }
         }
     }

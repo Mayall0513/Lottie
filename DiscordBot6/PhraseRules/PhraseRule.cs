@@ -7,22 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace DiscordBot6.PhraseRules {
-    public struct PhraseRuleConstraints {
-        GenericConstraint UserConstraints { get; }
-        GenericConstraint ChannelConstraints { get; }
-        RoleConstraint RoleConstraints { get; }
-
-        public PhraseRuleConstraints(GenericConstraint userConstraints, GenericConstraint channelConstraints, RoleConstraint roleConstraints) {
-            UserConstraints = userConstraints;
-            ChannelConstraints = channelConstraints;
-            RoleConstraints = roleConstraints;
-        }
-
-        public bool MatchesConstriants(ulong userId, ulong channelId, IEnumerable<ulong> roleIds) {
-            return UserConstraints.Matches(userId) && ChannelConstraints.Matches(channelId) && RoleConstraints.Matches(roleIds);
-        }
-    }
-
     public struct PhraseRulePhraseModifiers {
         public IReadOnlyCollection<PhraseRuleModifier> Modifiers { get; }
         public IReadOnlyCollection<PhraseHomographOverride> HomographOverrides { get; }
@@ -38,7 +22,7 @@ namespace DiscordBot6.PhraseRules {
     public sealed class PhraseRule {
         private static readonly PcreRegex urlRegex;
 
-        public PhraseRuleConstraints Constraints { get; }
+        public CRUConstraints Constraints { get; }
 
         private readonly PcreRegex regex;
 
@@ -50,14 +34,14 @@ namespace DiscordBot6.PhraseRules {
             urlRegex = new PcreRegex(@"(?:^|\s)\S*https?://\S*$", PcreOptions.Compiled | PcreOptions.Caseless);
         }
 
-        public PhraseRule(ulong serverId, string text, PhraseRuleConstraints constraints, PhraseRulePhraseModifiers phraseModifiers) {
+        public PhraseRule(ulong serverId, string text, CRUConstraints constraints, PhraseRulePhraseModifiers phraseModifiers) {
             Constraints = constraints;
             regex = RegexHelper.CreateRegex(text, serverId, phraseModifiers);
 
             DeriveMetaInformation(phraseModifiers.Modifiers);
         }
 
-        public PhraseRule(string pattern, PcreOptions pcreOptions, PhraseRuleConstraints constraints, IEnumerable<PhraseRuleModifier> phraseModifiers) {
+        public PhraseRule(string pattern, PcreOptions pcreOptions, CRUConstraints constraints, IEnumerable<PhraseRuleModifier> phraseModifiers) {
             Constraints = constraints;
             regex = new PcreRegex(pattern, pcreOptions);
 
@@ -85,7 +69,7 @@ namespace DiscordBot6.PhraseRules {
             SocketGuildChannel guildChannel = socketMessage.Channel as SocketGuildChannel;
             IEnumerable<ulong> roleIds = guildUser.Roles.Select(x => x.Id);
 
-            if (!Constraints.MatchesConstriants(guildUser.Id, guildChannel.Id, roleIds)) { // check to see if the server rule constraints are met
+            if (!Constraints.Matches(guildChannel.Id, roleIds, guildUser.Id)) { // check to see if the phrase rule constraints are met
                 return false;
             }
 

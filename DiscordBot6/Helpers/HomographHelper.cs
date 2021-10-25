@@ -6,13 +6,6 @@ namespace DiscordBot6.Helpers {
         private static Dictionary<string, HashSet<string>> homographsTemplate = new Dictionary<string, HashSet<string>>();
         private static Dictionary<ulong, Dictionary<string, HashSet<string>>> serverTemplateCache = new Dictionary<ulong, Dictionary<string, HashSet<string>>>();
 
-        private static readonly string[] characterOverrideSuffixes = new string[] {
-            "+",
-            "{{0}}",
-            "{{0},}",
-            "{,{0}}"
-        };
-
         static HomographHelper() { // this needs finishing!
             homographsTemplate.Add("a", new HashSet<string>(new[] { "🇦", "4" }));
             homographsTemplate.Add("b", new HashSet<string>(new[] { "🇧", "6" }));

@@ -22,32 +22,26 @@ namespace DiscordBot6 {
         public const char DiscordNewLine = '\n';
 
         public static async Task Main(string[] arguments) {
-            Client = new DiscordSocketClient();
+            DiscordShardedClient shardClient = new DiscordShardedClient();
 
             commandService = new CommandService();
             await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
-            Client.Ready += Client_Ready;
-            Client.MessageReceived += Client_MessageReceived;
-            Client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
-            Client.GuildMemberUpdated += Client_GuildMemberUpdated;
-            Client.UserJoined += Client_UserJoined;
+            shardClient.ShardReady += Client_ShardReady;
+            shardClient.MessageReceived += Client_MessageReceived;
+            shardClient.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
+            shardClient.GuildMemberUpdated += Client_GuildMemberUpdated;
+            shardClient.UserJoined += Client_UserJoined;
 
-            await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
-            await Client.StartAsync();
+            await shardClient.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
+            await shardClient.StartAsync();
             await Task.Delay(-1);
         }
 
-        private static async Task Client_Ready() {
-            await PrecacheTimedObjects();
-        }
+        private static async Task Client_ShardReady(DiscordSocketClient client) {
+            Client = client;
 
-        private static async Task PrecacheTimedObjects() {
-            // Temporary mute persists
-
-            IEnumerable<MutePersist> mutePersists = await Repository.GetMutePersistsAllAsync();
-
-            foreach (MutePersist mutePersist in mutePersists) {
+            await foreach (MutePersist mutePersist in Repository.GetMutePersistsAllAsync(client.Guilds.Select(guild => guild.Id))) {
                 Server server = await Server.GetServerAsync(mutePersist.ServerId);
                 User user = await server.GetUserAsync(mutePersist.UserId);
 

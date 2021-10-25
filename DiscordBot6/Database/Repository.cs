@@ -155,9 +155,16 @@ namespace DiscordBot6.Database {
             return await connection.QueryAsync<MutePersist>("sp_Get_MutePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure);
         }
         
-        public static async Task<IEnumerable<MutePersist>> GetMutePersistsAllAsync() {
+        public static async IAsyncEnumerable<MutePersist> GetMutePersistsAllAsync(IEnumerable<ulong> serverIds) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            return await connection.QueryAsync<MutePersist>("sp_Get_MutePersists_All", null, commandType: CommandType.StoredProcedure);
+            foreach (ulong serverId in serverIds) {
+                IEnumerable<MutePersist> mutePersists = await connection.QueryAsync<MutePersist>("sp_Get_MutePersists_All", new { serverId }, commandType: CommandType.StoredProcedure);
+
+                foreach (MutePersist mutePersist in mutePersists) {
+                    yield return mutePersist;
+                }
+            }
+            
         }
 
 

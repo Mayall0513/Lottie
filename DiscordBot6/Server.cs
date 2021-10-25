@@ -5,6 +5,7 @@ using DiscordBot6.Database;
 using DiscordBot6.PhraseRules;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DiscordBot6 {
@@ -28,27 +29,40 @@ namespace DiscordBot6 {
 
         public ulong Id { get; }
 
+        public ulong LogChannelId => logChannelId.Value;
+        public bool HasLogChannel => logChannelId.HasValue;
+
+        private char? commandPrefix;
+        private ulong? logChannelId;
+
         public bool AutoMutePersist { get; }
         public bool AutoDeafenPersist { get; }
         public bool AutoRolePersist { get; }
+
+        private readonly HashSet<ulong> commandChannels = new HashSet<ulong>();
 
         private CRUConstraints tempMuteConstraints;
         private CRUConstraints muteConstraints;
         private CRUConstraints giveRolesConstraints;
 
-        public Server(ulong id, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist) {
+        public Server(ulong id, char? commandPrefix, ulong? logChannelId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels) {
             Id = id;
+
+            this.commandPrefix = commandPrefix;
+            this.logChannelId = logChannelId;
 
             AutoMutePersist = autoMutePersist;
             AutoDeafenPersist = autoDeafenPersist;
             AutoRolePersist = autoRolePersist;
+
+            this.commandChannels = new HashSet<ulong>(commandChannels);
         }
 
         public static async Task<Server> GetServerAsync(ulong id) {
             if (!serverCache.ContainsKey(id)) {
                 Server newServer = await Repository.GetServerAsync(id);
                 if (newServer == null) {
-                    newServer = new Server(id, true, true, false);
+                    newServer = new Server(id, null, null, true, true, false, Enumerable.Empty<ulong>());
                     await Repository.AddOrUpdateServerAsync(newServer);
                 }
 
@@ -139,6 +153,15 @@ namespace DiscordBot6 {
             }
 
             return giveRolesConstraints.Matches(null, roleIds, userId);
+        }
+
+
+        public bool IsCommandChannel(ulong channelId) {
+            return commandChannels.Count == 0 || commandChannels.Contains(channelId);
+        }
+
+        public char GetCommandPrefix() {
+            return commandPrefix ?? DiscordBot6.DefaultCommandPrefix;
         }
     }
 }

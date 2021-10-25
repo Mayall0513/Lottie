@@ -16,15 +16,18 @@ using System.Threading.Tasks;
 namespace DiscordBot6 {
     public static class DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
-        public static CommandService commandService;
+        public static CommandService commandService { get; private set; }
 
-        public static ulong BotAccountId { get => Client.CurrentUser.Id; }
+        public static ulong BotAccountId => Client.CurrentUser.Id;
+
         public const char DiscordNewLine = '\n';
+        public const char DefaultCommandPrefix = '+';
 
         public static async Task Main(string[] arguments) {
             DiscordShardedClient shardClient = new DiscordShardedClient();
 
             commandService = new CommandService();
+ 
             await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             shardClient.ShardReady += Client_ShardReady;
@@ -55,23 +58,30 @@ namespace DiscordBot6 {
             }
 
             if (socketMessage.Channel is SocketGuildChannel socketGuildChannel) { // message was sent in a server
-                int argumentIndex = 0;
-                if (!socketUserMessage.Author.IsBot && socketUserMessage.HasCharPrefix('+', ref argumentIndex)) {
-                    SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
-                    await commandService.ExecuteAsync(commandContext, argumentIndex, null);
+                Server server = await socketGuildChannel.Guild.GetServerAsync();
+
+                if (socketMessage.Author.Id != BotAccountId && server.IsCommandChannel(socketMessage.Channel.Id)) { // message was not sent by the bot and was sent in a command channel
+                    int argumentIndex = 0;
+
+                    if (socketUserMessage.HasCharPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
+                        SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
+                        await commandService.ExecuteAsync(commandContext, argumentIndex, null);
+                    }
                 }
 
-                Server server = await socketGuildChannel.Guild.GetServerAsync();
-                IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
-
+                /*
                 // this is unfinished - i want to do a thing where the user can decide what happens
                 // just a placeholder for the moment!
+
+                IEnumerable<PhraseRule> phraseRules = await server.GetPhraseRuleSetsAsync();
+
                 foreach (PhraseRule phraseRule in phraseRules) {
                     if (phraseRule.CanApply(socketMessage) && phraseRule.Matches(socketMessage.Content)) {
                         await socketUserMessage.DeleteAsync();
                         break;
                     }
                 }
+                */
             }
         }
 

@@ -31,9 +31,28 @@ namespace DiscordBot6.Database {
 
         public static async Task<Server> GetServerAsync(ulong id) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            ServerModel serverModel = await connection.QuerySingleOrDefaultAsync<ServerModel>("sp_Get_Server", new { id }, commandType: CommandType.StoredProcedure);
+            IEnumerable<dynamic> serverElements = await connection.QueryAsync<dynamic>("sp_Get_Server", new { id }, commandType: CommandType.StoredProcedure);
 
-            return serverModel?.CreateConcrete();
+            if (serverElements.Any()) {
+                ServerModel serverModel = new ServerModel();
+
+                foreach (dynamic serverElement in serverElements) {
+                    serverModel.Id = serverElement.Id;
+                    serverModel.CommandPrefix = serverElement.CommandPrefix;
+                    serverModel.LogChannelId = serverElement.LogChannelId;
+                    serverModel.AutoMutePersist = serverElement.AutoMutePersist;
+                    serverModel.AutoDeafenPersist = serverElement.AutoDeafenPersist;
+                    serverModel.AutoRolePersist = serverElement.AutoRolePersist;
+
+                    if (serverElement.ChannelId != null) {
+                        serverModel.CommandChannels.Add(serverElement.ChannelId);
+                    }
+                }
+
+                return serverModel.CreateConcrete();
+            }
+
+            return null;
         }
 
         public static async Task AddOrUpdateServerAsync(Server server) {
@@ -142,7 +161,7 @@ namespace DiscordBot6.Database {
 
         public static async Task AddMutePersistedAsync(ulong serverId, ulong userId, ulong channelId, DateTime? expiry) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            await connection.ExecuteAsync("sp_Add_MutePersist", new { serverId, userId, channelId, expiry }, commandType: CommandType.StoredProcedure);
+            await connection.ExecuteAsync("sp_AddOrUpdate_MutePersist", new { serverId, userId, channelId, expiry }, commandType: CommandType.StoredProcedure);
         }
 
         public static async Task RemoveMutePersistedAsync(ulong serverId, ulong userId, ulong channelId) {

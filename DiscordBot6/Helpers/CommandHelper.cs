@@ -5,7 +5,7 @@ using System.Text;
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {
 
-        public static bool GetTimeSpan(string[] arguments, out TimeSpan timeSpan, out string errors, TimeSpan? minimumTimeSpan = null) {
+        public static bool GetTimeSpan(string[] arguments, out TimeSpan timeSpan, out string[] errors, TimeSpan? minimumTimeSpan = null) {
             List<string> errorsList = new List<string>();
 
             int days = 0;
@@ -17,13 +17,13 @@ namespace DiscordBot6.Helpers {
                 string argument = arguments[i];
 
                 if (argument.Length == 1) { // this is too short to be a time
-                    errorsList.Add($"Argument `{argument}` is too small to represent a time span.");
+                    errorsList.Add($"Argument `{argument}` is too small to represent a time span");
                     continue;
                 }
 
                 if (int.TryParse(argument[0..^1], out int numArgument)) {
                     if (numArgument <= 0) { // a negative time span was given
-                        errorsList.Add($"Time Span `{argument}` is negative.");
+                        errorsList.Add($"Time Span `{argument}` is negative");
                         continue;
                     }
 
@@ -50,23 +50,23 @@ namespace DiscordBot6.Helpers {
                             break;
 
                         default:
-                            errorsList.Add($"Unknown time span suffix `{finalCharacter}`.");
+                            errorsList.Add($"Unknown time span suffix `{finalCharacter}`\n**Options:** d, h, m, s");
                             break;
                     }
                 }
 
                 else { // value given for time was not a number
-                    errorsList.Add($"Time span `{argument}` is not a number.");
+                    errorsList.Add($"Time span `{argument}` is not a number");
                 }
             }
 
             timeSpan = new TimeSpan(days, hours, minutes, seconds);
 
             if (minimumTimeSpan != null && timeSpan < minimumTimeSpan) {
-                errorsList.Add($"Time span is too short! Minimum is `{minimumTimeSpan.Value}`.");
+                errorsList.Add($"Time span is too short! Minimum is `{minimumTimeSpan.Value}`");
             }
 
-            errors = string.Join(DiscordBot6.DiscordNewLine, errorsList);
+            errors = errorsList.ToArray();
             return errorsList.Count == 0;
         }
     }

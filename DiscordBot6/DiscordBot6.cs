@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace DiscordBot6 {
     public static class DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
-        public static CommandService commandService { get; private set; }
+        public static CommandService CommandService { get; private set; }
 
         public static IUser BotAccount => Client.CurrentUser;
         public static ulong BotAccountId => Client.CurrentUser.Id;
@@ -23,11 +23,11 @@ namespace DiscordBot6 {
         public const char DiscordNewLine = '\n';
         public const char DefaultCommandPrefix = '+';
 
-        public static async Task Main(string[] _arguments) {
+        public static async Task Main(string[] _1) {
             DiscordShardedClient shardClient = new DiscordShardedClient();
 
-            commandService = new CommandService();
-            await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+            CommandService = new CommandService();
+            await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             shardClient.ShardReady += Client_ShardReady;
             shardClient.MessageReceived += Client_MessageReceived;
@@ -64,7 +64,7 @@ namespace DiscordBot6 {
 
                     if (socketUserMessage.HasCharPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
                         SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
-                        await commandService.ExecuteAsync(commandContext, argumentIndex, null);
+                        await CommandService.ExecuteAsync(commandContext, argumentIndex, null);
                     }
                 }
 

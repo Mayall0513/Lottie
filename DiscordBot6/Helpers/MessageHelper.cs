@@ -31,7 +31,7 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Green
             };
 
-            embedBuilder.AddField("Mesage", message, false);
+            embedBuilder.AddField("Message", message, false);
             return embedBuilder.Build();
         }
 

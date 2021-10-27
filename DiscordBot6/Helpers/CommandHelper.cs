@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {

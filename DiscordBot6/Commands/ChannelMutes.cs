@@ -3,7 +3,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot6.Helpers;
 using DiscordBot6.Timing;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

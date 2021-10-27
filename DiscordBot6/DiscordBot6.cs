@@ -3,7 +3,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
-using DiscordBot6.PhraseRules;
 using DiscordBot6.Timing;
 using System;
 using System.Collections.Concurrent;

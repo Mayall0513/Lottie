@@ -1,7 +1,4 @@
 ﻿using DiscordBot6.Constraints;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DiscordBot6.Database.Models.Constraints {
     class CRUConstraintsModel : IModelFor<CRUConstraints> {

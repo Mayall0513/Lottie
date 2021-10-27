@@ -2,10 +2,8 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot6.Helpers;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Commands {

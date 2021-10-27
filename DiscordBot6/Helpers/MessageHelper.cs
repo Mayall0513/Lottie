@@ -31,6 +31,7 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Green
             };
 
+            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Message", message, false);
             return embedBuilder.Build();
         }
@@ -40,6 +41,7 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Green
             };
 
+            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Message", message, false);
             embedBuilder.AddField("Start", start, true);
             embedBuilder.AddField("End", start + timeSpan, true);
@@ -53,6 +55,7 @@ namespace DiscordBot6.Helpers {
                 Timestamp = DateTime.UtcNow
             };
 
+            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Message", message, false);
             embedBuilder.AddField("Start", start, true);
             embedBuilder.AddField("End", start + timeSpan, true);
@@ -65,7 +68,9 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Red
             };
 
+            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Error", message, false);
+
             return embedBuilder.Build();
         }
 
@@ -74,6 +79,8 @@ namespace DiscordBot6.Helpers {
                 Title = message,
                 Color = Color.Red
             };
+
+            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
 
             int index = 1;
             IEnumerator<string> errorsEumerator = errors.GetEnumerator();

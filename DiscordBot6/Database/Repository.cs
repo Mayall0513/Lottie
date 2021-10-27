@@ -257,7 +257,7 @@ namespace DiscordBot6.Database {
 
 
         public static async Task<CRUConstraints> GetConstraints(ulong serverId, ConstraintIntents intent) {
-            CRUConstraintsModel crucConstraintsModel = new CRUConstraintsModel();
+            CRUConstraintsModel cruConstraintsModel = new CRUConstraintsModel();
 
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             IEnumerable<dynamic> genericConstraintElements = await connection.QueryAsync<dynamic>("sp_Get_Constraints_Generic", new { serverId, intent }, commandType: CommandType.StoredProcedure);
@@ -266,31 +266,31 @@ namespace DiscordBot6.Database {
             foreach (dynamic genericConstraintElement in genericConstraintElements) {
                 switch (genericConstraintElement.ConstraintType) {
                     case GenericConstraintTypes.USER:
-                        crucConstraintsModel.UserConstraintModel.Whitelist = genericConstraintElement.Whitelist;
-                        crucConstraintsModel.UserConstraintModel.Requirements.Add(genericConstraintElement.Data);
+                        cruConstraintsModel.UserConstraintModel.Whitelist = genericConstraintElement.Whitelist;
+                        cruConstraintsModel.UserConstraintModel.Requirements.Add(genericConstraintElement.Data);
                         break;
 
                     case GenericConstraintTypes.CHANNEL:
-                        crucConstraintsModel.ChannelConstraintModel.Whitelist = genericConstraintElement.Whitelist;
-                        crucConstraintsModel.ChannelConstraintModel.Requirements.Add(genericConstraintElement.Data);
+                        cruConstraintsModel.ChannelConstraintModel.Whitelist = genericConstraintElement.Whitelist;
+                        cruConstraintsModel.ChannelConstraintModel.Requirements.Add(genericConstraintElement.Data);
                         break;
                 }
             }
 
             foreach (dynamic roleConstraintElement in roleConstraintElements) {
-                crucConstraintsModel.RoleConstraintModel.WhitelistStrict = roleConstraintElement.WhitelistStrict;
-                crucConstraintsModel.RoleConstraintModel.BlacklistStrict = roleConstraintElement.BlacklistStrict;
+                cruConstraintsModel.RoleConstraintModel.WhitelistStrict = roleConstraintElement.WhitelistStrict;
+                cruConstraintsModel.RoleConstraintModel.BlacklistStrict = roleConstraintElement.BlacklistStrict;
 
                 if (roleConstraintElement.Whitelist) {
-                    crucConstraintsModel.RoleConstraintModel.WhitelistRequirements.Add(roleConstraintElement.RoleId);
+                    cruConstraintsModel.RoleConstraintModel.WhitelistRequirements.Add(roleConstraintElement.RoleId);
                 }
 
                 else {
-                    crucConstraintsModel.RoleConstraintModel.BlacklistRequirements.Add(roleConstraintElement.RoleId);
+                    cruConstraintsModel.RoleConstraintModel.BlacklistRequirements.Add(roleConstraintElement.RoleId);
                 }
             }
 
-            return crucConstraintsModel.CreateConcrete();
+            return cruConstraintsModel.CreateConcrete();
         }
 
         // we need this because the models are value types. due to this we need to convert the models while also creating a shallow copy. no combination of LINQ statements can do this.. for some reason

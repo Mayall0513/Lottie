@@ -17,12 +17,13 @@ namespace DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
         public static CommandService commandService { get; private set; }
 
+        public static IUser BotAccount => Client.CurrentUser;
         public static ulong BotAccountId => Client.CurrentUser.Id;
 
         public const char DiscordNewLine = '\n';
         public const char DefaultCommandPrefix = '+';
 
-        public static async Task Main(string[] arguments) {
+        public static async Task Main(string[] _arguments) {
             DiscordShardedClient shardClient = new DiscordShardedClient();
 
             commandService = new CommandService();

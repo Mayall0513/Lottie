@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace DiscordBot6.Helpers {
     public static class HomographHelper {
-        private static Dictionary<string, HashSet<string>> homographsTemplate = new Dictionary<string, HashSet<string>>();
-        private static Dictionary<ulong, Dictionary<string, HashSet<string>>> serverTemplateCache = new Dictionary<ulong, Dictionary<string, HashSet<string>>>();
+        private readonly static Dictionary<string, HashSet<string>> homographsTemplate = new Dictionary<string, HashSet<string>>();
+        private readonly static Dictionary<ulong, Dictionary<string, HashSet<string>>> serverTemplateCache = new Dictionary<ulong, Dictionary<string, HashSet<string>>>();
 
         static HomographHelper() { // this needs finishing!
             homographsTemplate.Add("a", new HashSet<string>(new[] { "🇦", "4" }));

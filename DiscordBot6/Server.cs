@@ -32,8 +32,8 @@ namespace DiscordBot6 {
         public ulong LogChannelId => logChannelId.Value;
         public bool HasLogChannel => logChannelId.HasValue;
 
-        private char? commandPrefix;
-        private ulong? logChannelId;
+        private readonly char? commandPrefix;
+        private readonly ulong? logChannelId;
 
         public bool AutoMutePersist { get; }
         public bool AutoDeafenPersist { get; }

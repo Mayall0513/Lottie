@@ -28,89 +28,45 @@ namespace DiscordBot6.Helpers {
 
     public static class MessageHelper {
         public static Embed CreateSimpleSuccessEmbed(string message) {
-            EmbedFieldBuilder fieldBuilder = new EmbedFieldBuilder() {
-                Name = "Message",
-                Value = message
-            };
-
             EmbedBuilder embedBuilder = new EmbedBuilder {
                 Color = Color.Green
             };
 
-            embedBuilder.AddField(fieldBuilder);
+            embedBuilder.AddField("Mesage", message, false);
             return embedBuilder.Build();
         }
 
         public static Embed CreateTimeSpanSimpleSuccessEmbed(string message, DateTime start, TimeSpan timeSpan) {
-            EmbedFieldBuilder fieldBuilder = new EmbedFieldBuilder() {
-                Name = "Message",
-                Value = message
-            };
-
-            EmbedFieldBuilder startBuilder = new EmbedFieldBuilder() {
-                Name = "Start",
-                Value = start,
-                IsInline = true
-            };
-
-            EmbedFieldBuilder endBuilder = new EmbedFieldBuilder() {
-                Name = "End",
-                Value = (start + timeSpan),
-                IsInline = true
-            };
-
             EmbedBuilder embedBuilder = new EmbedBuilder {
                 Color = Color.Green
             };
 
-            embedBuilder.AddField(fieldBuilder);
-            embedBuilder.AddField(startBuilder);
-            embedBuilder.AddField(endBuilder);
+            embedBuilder.AddField("Message", message, false);
+            embedBuilder.AddField("Start", start, true);
+            embedBuilder.AddField("End", start + timeSpan, true);
 
             return embedBuilder.Build();
         }
 
         public static Embed CreateTimeSpanSimpleInfoEmbed(string message, DateTime start, TimeSpan timeSpan) {
-            EmbedFieldBuilder fieldBuilder = new EmbedFieldBuilder() {
-                Name = "Message",
-                Value = message
-            };
-
-            EmbedFieldBuilder startBuilder = new EmbedFieldBuilder() {
-                Name = "Start",
-                Value = start,
-                IsInline = true
-            };
-
-            EmbedFieldBuilder endBuilder = new EmbedFieldBuilder() {
-                Name = "End",
-                Value = (start + timeSpan),
-                IsInline = true
-            };
-
             EmbedBuilder embedBuilder = new EmbedBuilder {
                 Color = Color.LightGrey,
                 Timestamp = DateTime.UtcNow
             };
 
-            embedBuilder.AddField(fieldBuilder);
-            embedBuilder.AddField(startBuilder);
-            embedBuilder.AddField(endBuilder);
+            embedBuilder.AddField("Message", message, false);
+            embedBuilder.AddField("Start", start, true);
+            embedBuilder.AddField("End", start + timeSpan, true);
 
             return embedBuilder.Build();
         }
 
         public static Embed CreateSimpleErrorEmbed(string message) {
-            EmbedFieldBuilder fieldBuilder = new EmbedFieldBuilder() {
-                Name = "Error",
-                Value = message
-            };
-
             EmbedBuilder embedBuilder = new EmbedBuilder {
                 Color = Color.Red
             };
 
-            embedBuilder.AddField(fieldBuilder);
+            embedBuilder.AddField("Error", message, false);
             return embedBuilder.Build();
         }
 
@@ -124,12 +80,7 @@ namespace DiscordBot6.Helpers {
             IEnumerator<string> errorsEumerator = errors.GetEnumerator();
 
             while (errorsEumerator.MoveNext()) {
-                EmbedFieldBuilder fieldBuilder = new EmbedFieldBuilder() {
-                    Name = $"#{index}",
-                    Value = errorsEumerator.Current
-                };
-
-                embedBuilder.AddField(fieldBuilder);
+                embedBuilder.AddField($"#{index}", errorsEumerator.Current, false);
                 index++;
             }
 

@@ -27,7 +27,6 @@ namespace DiscordBot6 {
             DiscordShardedClient shardClient = new DiscordShardedClient();
 
             commandService = new CommandService();
- 
             await commandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             shardClient.ShardReady += Client_ShardReady;
@@ -130,7 +129,7 @@ namespace DiscordBot6 {
                 }
 
                 if ((beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
-                    IEnumerable<ulong> mutePersists = user.GetMutesPersisted(); // get channel specific mute persists
+                    IEnumerable<ulong> mutePersists = user.GetMutesPersisted().Select(mutePersist => mutePersist.ChannelId); // get channel specific mute persists
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
                     if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed

@@ -124,12 +124,12 @@ namespace DiscordBot6 {
             }
         }
 
-        public IEnumerable<ulong> GetMutesPersisted() {
+        public IEnumerable<MutePersist> GetMutesPersisted() {
             if (mutesPersisted == null) {
                 mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
             }
 
-            return mutesPersisted.Keys;
+            return mutesPersisted.Values;
         }
 
 

@@ -26,7 +26,9 @@ namespace DiscordBot6.Database {
         public enum ConstraintIntents : uint {
             TEMPMUTE,
             MUTE,
-            GIVEROLES
+            GIVEROLES,
+            CHANNELMUTES,
+            ROLEPERSISTS
         }
 
         public static async Task<Server> GetServerAsync(ulong id) {

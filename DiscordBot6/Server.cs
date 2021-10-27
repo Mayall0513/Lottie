@@ -44,6 +44,8 @@ namespace DiscordBot6 {
         private CRUConstraints tempMuteConstraints;
         private CRUConstraints muteConstraints;
         private CRUConstraints giveRolesConstraints;
+        private CRUConstraints checkMutesConstraints;
+        private CRUConstraints checkRolesConstraints;
 
         public Server(ulong id, char? commandPrefix, ulong? logChannelId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels) {
             Id = id;
@@ -153,6 +155,22 @@ namespace DiscordBot6 {
             }
 
             return giveRolesConstraints.Matches(null, roleIds, userId);
+        }
+
+        public async Task<bool> UserMayCheckMutePersists(ulong userId, IEnumerable<ulong> roleIds) {
+            if (checkMutesConstraints == null) {
+                checkMutesConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.CHANNELMUTES);
+            }
+
+            return checkMutesConstraints.Matches(null, roleIds, userId);
+        }
+
+        public async Task<bool> UserMayCheckRolePersists(ulong userId, IEnumerable<ulong> roleIds) {
+            if (checkRolesConstraints == null) {
+                checkRolesConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.ROLEPERSISTS);
+            }
+
+            return checkRolesConstraints.Matches(null, roleIds, userId);
         }
 
 

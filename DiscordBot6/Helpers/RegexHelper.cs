@@ -413,13 +413,13 @@ namespace DiscordBot6.Helpers {
 
         public static void AddWordMessageEndRequirement(StringBuilder textBuilder, ref PcreOptions pcreOptions, BoundaryFlags wordFlag, BoundaryFlags messageFlag) {
             if (wordFlag == BoundaryFlags.REQUIRED && messageFlag == BoundaryFlags.BANNED) {
-                textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[1]);
+                textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[1]);
             }
 
             else {
                 switch (wordFlag) {
                     case BoundaryFlags.REQUIRED:
-                        textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[0]);
+                        textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[0]);
 
                         if (messageFlag == BoundaryFlags.REQUIRED) {
                             pcreOptions |= PcreOptions.EndAnchored;
@@ -428,7 +428,7 @@ namespace DiscordBot6.Helpers {
                         break;
 
                     case BoundaryFlags.BANNED:
-                        textBuilder = textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[2]);
+                        textBuilder.Append(RegexPatterns.PATTERNGROUP_WORDEND[2]);
                         break;
                 }
             }

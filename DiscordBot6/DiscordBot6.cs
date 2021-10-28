@@ -22,7 +22,7 @@ namespace DiscordBot6 {
         public const char DiscordNewLine = '\n';
         public const char DefaultCommandPrefix = '+';
 
-        public static async Task Main(string[] _1) {
+        public static async Task Main(string[] _0) {
             DiscordShardedClient shardClient = new DiscordShardedClient();
 
             CommandService = new CommandService();

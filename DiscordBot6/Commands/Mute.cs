@@ -22,10 +22,10 @@ namespace DiscordBot6.Commands {
         public async Task CommandImpl(ulong userId) {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
-                IEnumerable<ulong> userIds = socketGuildUser.Roles.Select(x => x.Id);
 
-                if (!await server.UserMayMute(socketGuildUser.Id, userIds)) {
-                    await ResponseHelper.SendNoPermissionsResponse(Context.Channel);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
+                if (!await server.UserMayMute(socketGuildUser.Id, userRoleIds)) {
+                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
                     return;
                 }
 
@@ -39,7 +39,14 @@ namespace DiscordBot6.Commands {
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateSimpleSuccessEmbed($"Muted {guildUser.Mention}"));
+                string messageSuffix = guildUser == null ? $"`{guildUser.Id}`" : guildUser.Mention;
+
+                await Context.Channel.SendGenericSuccessResponse(guildUser.Id, null, $"Muted {messageSuffix}");
+
+                if (server.HasLogChannel) {
+                    await Context.Guild.GetTextChannel(server.LogChannelId)
+                        .LogGenericSuccess(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} muted {messageSuffix}");
+                }
             }
         }
     }

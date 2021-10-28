@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Commands {
-    [Group("channelmutes")]
+    [Group("checkchannelmutes")]
     public sealed class ChannelMutes : ModuleBase<SocketCommandContext> {
         [Command]
         public async Task Command(ulong id) {
@@ -24,24 +24,22 @@ namespace DiscordBot6.Commands {
         private async Task CommandImpl(ulong userId) {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
-                IEnumerable<ulong> userIds = socketGuildUser.Roles.Select(x => x.Id);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
 
-                if (!await server.UserMayCheckMutePersists(socketGuildUser.Id, userIds)) {
-                    await ResponseHelper.SendNoPermissionsResponse(Context.Channel);
+                if (!await server.UserMayCheckMutePersists(socketGuildUser.Id, userRoleIds)) {
+                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
                     return;
                 }
 
                 User serverUser = await server.GetUserAsync(userId);
-
                 if (serverUser == null) {
-                    await ResponseHelper.SendUserNotFoundResponse(Context.Channel, userId);
+                    await Context.Channel.SendUserNotFoundResponse(userId);
                     return;
                 }
 
                 IEnumerable<MutePersist> mutePersists = serverUser.GetMutesPersisted();
-
                 if (!mutePersists.Any()) {
-                    await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateSimpleSuccessEmbed("No channel mute persists"));
+                    await Context.Channel.SendGenericSuccessResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), "User has no channel mute persists");
                     return;
                 }
 
@@ -64,7 +62,7 @@ namespace DiscordBot6.Commands {
                     mutePersistsBuilder.Append(DiscordBot6.DiscordNewLine);
                 }
 
-                await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateSimpleSuccessEmbed(mutePersistsBuilder.ToString()));
+                await Context.Channel.SendGenericSuccessResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
             }
         }
     }

@@ -35,21 +35,21 @@ namespace DiscordBot6.Commands {
         private async Task CommandImpl(ulong userId, string[] arguments) {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
-                IEnumerable<ulong> userIds = socketGuildUser.Roles.Select(x => x.Id);
 
-                if (!await server.UserMayTempMute(socketGuildUser.Id, userIds)) {
-                    await ResponseHelper.SendNoPermissionsResponse(Context.Channel);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
+                if (!await server.UserMayTempMute(socketGuildUser.Id, userRoleIds)) {
+                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
                     return;
                 }
 
                 SocketGuildUser guildUser = Context.Guild.GetUser(userId);
                 if (guildUser == null) { // the user whose id was given does not exist
-                    await ResponseHelper.SendUserNotFoundResponse(Context.Channel, userId);
+                    await Context.Channel.SendUserNotFoundResponse(userId);
                     return;
                 }
 
                 if (guildUser.VoiceChannel == null) { // the user whose id was given is not in a voice chat
-                    await ResponseHelper.SendUserNotInVoiceChannelResponse(Context.Channel, userId);
+                    await Context.Channel.SendUserNotInVoiceChannelResponse(guildUser);
                     return;
                 }
 
@@ -58,29 +58,26 @@ namespace DiscordBot6.Commands {
                 if (parsedTimeSpan) {
                     DateTime start = DateTime.UtcNow;
                     User serverUser = await server.GetUserAsync(userId);
+                    bool wasMutePersisted = serverUser.IsMutePersisted(guildUser.VoiceChannel.Id);
+                    await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, start + timeSpan);
 
-                    if (await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, start + timeSpan)) {
-                        if (!guildUser.IsMuted) {
-                            serverUser.IncrementVoiceStatusUpdated();
-                            await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
-                        }
-
-                        await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateTimeSpanSimpleSuccessEmbed($"Muted {guildUser.Mention} in `{guildUser.VoiceChannel.Name}`", start, timeSpan));
-                        if (server.HasLogChannel) {
-                            await Context.Guild.GetTextChannel(server.LogChannelId).SendMessageAsync(embed: MessageHelper.CreateTimeSpanSimpleInfoEmbed($"{socketGuildUser.Mention} muted {guildUser.Mention}", start, timeSpan));
-                        }
+                    if (!wasMutePersisted && !guildUser.IsMuted) {
+                        serverUser.IncrementVoiceStatusUpdated();
+                        await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                     }
 
-                    else {
-                        await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateTimeSpanSimpleSuccessEmbed($"Updated {guildUser.Mention}'s mute in `{guildUser.VoiceChannel.Name}`", start, timeSpan));
-                        if (server.HasLogChannel) {
-                            await Context.Guild.GetTextChannel(server.LogChannelId).SendMessageAsync(embed: MessageHelper.CreateTimeSpanSimpleInfoEmbed($"{socketGuildUser.Mention} updated {guildUser.Mention}'s mute", start, timeSpan));
-                        }
+
+                    string messageSuffix = $"{guildUser.Mention} in <#{guildUser.VoiceChannel.Id}> for `{timeSpan}`";
+
+                    await Context.Channel.SendTimeFrameSuccessResponse(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Muted {messageSuffix}", start, timeSpan);
+                    if (server.HasLogChannel) {
+                        await Context.Guild.GetTextChannel(server.LogChannelId)
+                            .LogTimeFrameSuccessResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} muted {messageSuffix}", start, timeSpan);
                     }
                 }
 
                 else {
-                    await ResponseHelper.SendTimeSpanFormatResponse(Context.Channel, errors);
+                    await Context.Channel.SendGenericErrorResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errors);
                 }
             }
         }
@@ -88,21 +85,21 @@ namespace DiscordBot6.Commands {
         private async Task CommandImpl(ulong userId) {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
-                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
 
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
                 if (!await server.UserMayMute(socketGuildUser.Id, userRoleIds)) {
-                    await ResponseHelper.SendNoPermissionsResponse(Context.Channel);
+                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
                     return;
                 }
 
                 SocketGuildUser guildUser = Context.Guild.GetUser(userId);
                 if (guildUser == null) { // the user whose id was given does not exist
-                    await ResponseHelper.SendUserNotFoundResponse(Context.Channel, userId);
+                    await Context.Channel.SendUserNotFoundResponse(userId);
                     return;
                 }
 
                 if (guildUser.VoiceChannel == null) { // the user whose id was given is not in a voice chat
-                    await ResponseHelper.SendUserNotInVoiceChannelResponse(Context.Channel, userId);
+                    await Context.Channel.SendUserNotInVoiceChannelResponse(guildUser);
                     return;
                 }
 
@@ -114,7 +111,7 @@ namespace DiscordBot6.Commands {
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                await Context.Channel.SendMessageAsync(embed: MessageHelper.CreateSimpleSuccessEmbed($"Muted {guildUser.Mention} in `{guildUser.VoiceChannel.Name}` permanently"));
+                await Context.Channel.SendGenericSuccessResponse(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Muted {guildUser.Mention} in `{guildUser.VoiceChannel.Name}` permanently");
             }
         }
     }

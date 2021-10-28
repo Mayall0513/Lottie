@@ -17,7 +17,6 @@ namespace DiscordBot6 {
         public static DiscordSocketClient Client { get; private set; }
         public static CommandService CommandService { get; private set; }
 
-        public static IUser BotAccount => Client.CurrentUser;
         public static ulong BotAccountId => Client.CurrentUser.Id;
 
         public const char DiscordNewLine = '\n';

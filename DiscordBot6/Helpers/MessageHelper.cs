@@ -1,27 +1,71 @@
 ﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Helpers {
-    public static class ResponseHelper {
-        // issues
-
-        public static async Task SendUserNotFoundResponse(ISocketMessageChannel channel, ulong userId) {
-            await channel.SendMessageAsync(embed: MessageHelper.CreateSimpleErrorEmbed($"Could not find user `{userId}`"));
+    public static class ContextExtensions {
+        public static ResponseBuilder CreateResponse(this SocketCommandContext socketCommandContext) {
+            return new ResponseBuilder(socketCommandContext);
         }
 
-        public static async Task SendUserNotInVoiceChannelResponse(ISocketMessageChannel channel, ulong userId) {
-            await channel.SendMessageAsync(embed: MessageHelper.CreateSimpleErrorEmbed($"User `{userId}` is not in a voice channel"));
+        public static async Task SendUserNotFoundResponse(this SocketCommandContext socketCommandContext, IUser user) {
+            await CreateResponse(socketCommandContext)
+                .WithSubject(user.Id, user.GetAvatarUrl(size: 64))
+                .WithErrors($"Could not find user with id `{user.Id}`")
+                .WithColor(Color.Red)
+                .SendMessage();
+        }
+    }
+
+    public sealed class ResponseBuilder {
+        private readonly SocketCommandContext socketCommandContext;
+        private readonly EmbedBuilder embedBuilder;
+
+        public ResponseBuilder(SocketCommandContext socketCommandContext) {
+            this.socketCommandContext = socketCommandContext;
+            embedBuilder = new EmbedBuilder {
+                Description = string.Empty
+            };
+
+            embedBuilder.WithAuthor(socketCommandContext.Guild.CurrentUser);
         }
 
-        public static async Task SendTimeSpanFormatResponse(ISocketMessageChannel channel, IEnumerable<string> errors) {
-            await channel.SendMessageAsync(embed: MessageHelper.CreateComplexErrorEmbed("Error(s) In Time Span", errors));
+        public ResponseBuilder WithSubject(ulong id, string imageUrl = null) {
+            embedBuilder.WithFooter(string.Empty + id, imageUrl);
+            return this;
         }
 
-        public static async Task SendNoPermissionsResponse(ISocketMessageChannel channel) {
-            await channel.SendMessageAsync(embed: MessageHelper.CreateSimpleErrorEmbed("You're not allowed to do that"));
+        public ResponseBuilder WithText(string text) {
+            embedBuilder.Description += text;
+            return this;
+        }
+
+        public ResponseBuilder WithField(string name, string value, bool inline = false) {
+            embedBuilder.AddField(name, value, inline);
+            return this;
+        }
+
+        public ResponseBuilder WithErrors(params string[] errors) {
+            for (int i = 1; i < errors.Length; ++i) {
+                embedBuilder.Description += $"**Error #{i}**" + DiscordBot6.DiscordNewLine;
+                embedBuilder.Description += errors[i] + DiscordBot6.DiscordNewLine + DiscordBot6.DiscordNewLine;
+            }
+
+            return this;
+        }
+
+        public ResponseBuilder WithColor(Color color) {
+            embedBuilder.WithColor(color);
+            return this;
+        }
+
+        public async Task SendMessage() {
+            Embed embed = embedBuilder.Build();
+
+            await socketCommandContext.Channel.SendMessageAsync(embed: embed);
         }
     }
 
@@ -31,7 +75,15 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Green
             };
 
-            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
+            embedBuilder.AddField("Message", message, false);
+            return embedBuilder.Build();
+        }
+
+        public static Embed CreateSimpleMixedEmbed(string message) {
+            EmbedBuilder embedBuilder = new EmbedBuilder {
+                Color = Color.LightOrange
+            };
+
             embedBuilder.AddField("Message", message, false);
             return embedBuilder.Build();
         }
@@ -41,7 +93,6 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Green
             };
 
-            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Message", message, false);
             embedBuilder.AddField("Start", start, true);
             embedBuilder.AddField("End", start + timeSpan, true);
@@ -55,7 +106,6 @@ namespace DiscordBot6.Helpers {
                 Timestamp = DateTime.UtcNow
             };
 
-            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Message", message, false);
             embedBuilder.AddField("Start", start, true);
             embedBuilder.AddField("End", start + timeSpan, true);
@@ -68,7 +118,6 @@ namespace DiscordBot6.Helpers {
                 Color = Color.Red
             };
 
-            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
             embedBuilder.AddField("Error", message, false);
 
             return embedBuilder.Build();
@@ -79,8 +128,6 @@ namespace DiscordBot6.Helpers {
                 Title = message,
                 Color = Color.Red
             };
-
-            embedBuilder.WithAuthor(DiscordBot6.BotAccount);
 
             int index = 1;
             IEnumerator<string> errorsEumerator = errors.GetEnumerator();

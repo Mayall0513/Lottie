@@ -87,7 +87,7 @@ namespace DiscordBot6 {
         }
 
 
-        public async Task<bool> AddMutePersistedAsync(ulong channelId, DateTime? expiry) {
+        public async Task AddMutePersistedAsync(ulong channelId, DateTime? expiry) {
             if (mutesPersisted == null) {
                 mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
             }
@@ -95,15 +95,11 @@ namespace DiscordBot6 {
             if (mutesPersisted.ContainsKey(channelId)) {
                 mutesPersisted[channelId].Expiry = expiry;
                 await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
-
-                return false;
             }
 
             MutePersist mutePersist = new MutePersist() { ServerId = Parent.Id, UserId = Id, ChannelId = channelId, Expiry = expiry };
             mutesPersisted.TryAdd(channelId, mutePersist);
             await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
-
-            return true;
         }
 
         public bool PrecacheMutePersisted(MutePersist mutePersist) { // this may render CacheMutesPersistedAsync entirely unneeded?
@@ -122,6 +118,10 @@ namespace DiscordBot6 {
             if (mutesPersisted.TryRemove(channelId, out _)) {
                 await Repository.RemoveMutePersistedAsync(Parent.Id, Id, channelId);
             }
+        }
+
+        public bool IsMutePersisted(ulong channelId) {
+            return mutesPersisted.ContainsKey(channelId);
         }
 
         public IEnumerable<MutePersist> GetMutesPersisted() {

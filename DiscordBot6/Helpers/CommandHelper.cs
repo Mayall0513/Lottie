@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Discord;
+using Discord.WebSocket;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {
@@ -67,6 +70,54 @@ namespace DiscordBot6.Helpers {
 
             errors = errorsList.ToArray();
             return errorsList.Count == 0;
+        }
+
+        public static bool GetRoles(IEnumerable<string> arguments, SocketGuild guild, SocketGuildUser caller, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles) {
+            validRoles = new HashSet<SocketRole>();
+            lockedRoles = new HashSet<SocketRole>();
+            phantomRoles = new HashSet<ulong>();
+            invalidRoles = new List<string>();
+
+            foreach (string argument in arguments) {
+                if (ulong.TryParse(argument, out ulong roleId)) {
+                    SocketRole socketRole = guild.Roles.FirstOrDefault(role => role.Id == roleId);
+
+                    if (socketRole == null) {
+                        phantomRoles.Add(roleId);
+                    }
+
+                    else {
+                        if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
+                            lockedRoles.Add(socketRole);
+                        }
+
+                        else {
+                            validRoles.Add(socketRole);
+                        }
+                    }
+                }
+
+                else {
+                    string argumentLower = argument.Trim().ToLower();
+                    SocketRole socketRole = guild.Roles.FirstOrDefault(role => role.Name.ToLower() == argumentLower);
+
+                    if (socketRole == null) {
+                        invalidRoles.Add(argument);
+                    }
+
+                    else {
+                        if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
+                            lockedRoles.Add(socketRole);
+                        }
+
+                        else {
+                            validRoles.Add(socketRole);
+                        }
+                    }
+                }
+            }
+
+            return validRoles.Count > 0 || lockedRoles.Count > 0 || phantomRoles.Count > 0;
         }
     }
 }

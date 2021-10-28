@@ -23,7 +23,7 @@ namespace DiscordBot6.Commands {
 
         public async Task CommandImpl(ulong userId, string[] roles) {
             if (roles.Length == 0) {
-                await Context.Channel.SendGenericErrorResponse(Context.User.Id, Context.User.GetAvatarUrl(size: 64), "You must list roles after the user's ID");
+                await Context.Channel.SendGenericErrorResponseAsync(Context.User.Id, Context.User.GetAvatarUrl(size: 64), "You must list roles after the user's ID");
                 return;
             }
 
@@ -32,13 +32,13 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
                 if (!await server.UserMayGiveRoles(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
+                    await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;
                 }
 
                 SocketGuildUser guildUser = Context.Guild.GetUser(userId);
                 if (guildUser == null) {
-                    await Context.Channel.SendUserNotFoundResponse(userId);
+                    await Context.Channel.SendUserNotFoundResponseAsync(userId);
                     return;
                 }
 
@@ -56,7 +56,7 @@ namespace DiscordBot6.Commands {
                 }
 
                 if (!anyRoles) {
-                    await Context.Channel.SendGenericErrorResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errorMessages);
+                    await Context.Channel.SendGenericErrorResponseAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errorMessages);
                 }
 
                 IEnumerable<ulong> rolesToPersist = validRoles.Select(role => role.Id).Union(phantomRoles);
@@ -75,16 +75,16 @@ namespace DiscordBot6.Commands {
                 string messageSuffix = $"{string.Join(", ", newRoleNames)} to {guildUser.Mention}.";
 
                 if (errorMessages.Length > 0) {
-                    await Context.Channel.SendGenericMixedResponse(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Gave {messageSuffix}", errorMessages);
+                    await Context.Channel.SendGenericMixedResponseAsync(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Gave {messageSuffix}", errorMessages);
                 }
 
                 else {
-                    await Context.Channel.SendGenericSuccessResponse(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Gave {messageSuffix}");
+                    await Context.Channel.SendGenericSuccessResponseAsync(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Gave {messageSuffix}");
                 }
 
                 if (server.HasLogChannel) {
                     await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccess(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} gave {messageSuffix}");
+                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} gave {messageSuffix}");
                 }
             }
         }

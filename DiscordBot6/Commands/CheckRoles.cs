@@ -28,13 +28,13 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
                 if (!await server.UserMayCheckRolePersists(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
+                    await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;
                 }
 
                 User serverUser = await server.GetUserAsync(userId);
                 if (serverUser == null) {
-                    await Context.Channel.SendUserNotFoundResponse(userId);
+                    await Context.Channel.SendUserNotFoundResponseAsync(userId);
                     return;
                 }
 
@@ -42,7 +42,7 @@ namespace DiscordBot6.Commands {
                 IEnumerable<SocketRole> persistedRoles = Context.Guild.Roles.Where(x => persistedRolesId.Contains(x.Id));
 
                 if (!persistedRoles.Any()) {
-                    await Context.Channel.SendGenericSuccessResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), "User has no role persists");
+                    await Context.Channel.SendGenericSuccessResponseAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), "User has no role persists");
                     return;
                 }
 
@@ -51,7 +51,7 @@ namespace DiscordBot6.Commands {
                     mutePersistsBuilder.Append("<@&").Append(persistedRole.Id).Append("> `").Append(persistedRole.Name).Append("`").Append(DiscordBot6.DiscordNewLine);
                 }
 
-                await Context.Channel.SendGenericSuccessResponse(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
+                await Context.Channel.SendGenericSuccessResponseAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
             }
         }
 

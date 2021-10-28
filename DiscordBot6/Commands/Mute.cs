@@ -25,7 +25,7 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
                 if (!await server.UserMayMute(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionResponse(socketGuildUser);
+                    await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;
                 }
 
@@ -41,11 +41,11 @@ namespace DiscordBot6.Commands {
 
                 string messageSuffix = guildUser == null ? $"`{guildUser.Id}`" : guildUser.Mention;
 
-                await Context.Channel.SendGenericSuccessResponse(guildUser.Id, null, $"Muted {messageSuffix}");
+                await Context.Channel.SendGenericSuccessResponseAsync(guildUser.Id, null, $"Muted {messageSuffix}");
 
                 if (server.HasLogChannel) {
                     await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccess(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} muted {messageSuffix}");
+                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} muted {messageSuffix}");
                 }
             }
         }

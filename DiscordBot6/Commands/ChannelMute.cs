@@ -110,7 +110,13 @@ namespace DiscordBot6.Commands {
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                await Context.Channel.SendGenericSuccessResponseAsync(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Muted {guildUser.Mention} in `{guildUser.VoiceChannel.Name}` permanently");
+                string messageSuffix = $"{guildUser.Mention} in <#{guildUser.VoiceChannel.Id}> permanently";
+
+                await Context.Channel.SendGenericSuccessResponseAsync(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Muted {messageSuffix}");
+                if(server.HasLogChannel) {
+                    await Context.Guild.GetTextChannel(server.LogChannelId)
+                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} muted {messageSuffix}");
+                }
             }
         }
     }

@@ -39,9 +39,8 @@ namespace DiscordBot6.Commands {
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                string messageSuffix = guildUser == null ? $"`{guildUser.Id}`" : guildUser.Mention;
-
-                await Context.Channel.SendGenericSuccessResponseAsync(guildUser.Id, null, $"Muted {messageSuffix}");
+                string messageSuffix = guildUser == null ? $"`{userId}`" : guildUser.Mention;
+                await Context.Channel.SendGenericSuccessResponseAsync(userId, guildUser?.GetAvatarUrl(size: 64), $"Muted {messageSuffix}");
 
                 if (server.HasLogChannel) {
                     await Context.Guild.GetTextChannel(server.LogChannelId)

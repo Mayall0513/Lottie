@@ -215,15 +215,11 @@ namespace DiscordBot6 {
                 }
             }
 
-            if (!server.AutoRolePersist) { // server doesn't want automatic role persists
-                return;
-            }
-
-            if (rolesAdded.Count > 0) {
+            if (server.AutoRolePersist && rolesAdded.Count > 0) {
                 await user.AddRolesPersistedAsync(rolesAdded);
             }
 
-            if (rolesRemoved.Count > 0) {
+            if ( rolesRemoved.Count > 0) {
                 await user.RemoveRolesPersistedAsync(rolesRemoved);
             }     
         }

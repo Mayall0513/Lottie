@@ -63,7 +63,6 @@ namespace DiscordBot6.Commands {
                 await serverUser.AddRolesPersistedAsync(rolesToPersist);
 
                 if (validRoles.Count > 0) {
-                    serverUser.IncrementRolesUpdated();
                     await guildUser.AddRolesAsync(validRoles);
                 }
 

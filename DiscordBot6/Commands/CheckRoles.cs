@@ -25,7 +25,7 @@ namespace DiscordBot6.Commands {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
 
-                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayCheckRolePersists(socketGuildUser.Id, userRoleIds)) {
                     await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;

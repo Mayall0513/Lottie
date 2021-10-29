@@ -36,7 +36,7 @@ namespace DiscordBot6.Commands {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
 
-                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayTempMute(socketGuildUser.Id, userRoleIds)) {
                     await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;
@@ -66,7 +66,6 @@ namespace DiscordBot6.Commands {
                         await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                     }
 
-
                     string messageSuffix = $"{guildUser.Mention} in <#{guildUser.VoiceChannel.Id}> for `{timeSpan}`";
 
                     await Context.Channel.SendTimeFrameSuccessResponseAsync(guildUser.Id, guildUser.GetAvatarUrl(size: 64), $"Muted {messageSuffix}", start, timeSpan);
@@ -86,7 +85,7 @@ namespace DiscordBot6.Commands {
             if (Context.User is SocketGuildUser socketGuildUser) {
                 Server server = await Context.Guild.GetServerAsync();
 
-                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(x => x.Id);
+                IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayMute(socketGuildUser.Id, userRoleIds)) {
                     await Context.Channel.SendNoPermissionResponseAsync(socketGuildUser);
                     return;

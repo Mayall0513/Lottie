@@ -62,7 +62,6 @@ namespace DiscordBot6.Commands {
                     await serverUser.AddMutePersistedAsync(guildUser.VoiceChannel.Id, start + timeSpan);
 
                     if (!wasMutePersisted && !guildUser.IsMuted) {
-                        serverUser.IncrementVoiceStatusUpdated();
                         await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                     }
 

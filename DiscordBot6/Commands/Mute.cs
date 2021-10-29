@@ -35,7 +35,6 @@ namespace DiscordBot6.Commands {
 
                 SocketGuildUser guildUser = Context.Guild.GetUser(userId);
                 if (guildUser?.VoiceChannel != null && !guildUser.IsMuted) {
-                    serverUser.IncrementVoiceStatusUpdated();
                     await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 

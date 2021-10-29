@@ -187,10 +187,7 @@ namespace DiscordBot6 {
                 if (rolesToRemove.Count > 0) { // there are roles we need to remove
                     user.IncrementRolesUpdated();
                     await beforeUser.RemoveRolesAsync(rolesToRemove);
-
-                    if (server.AutoRolePersist) {
-                        await user.RemoveRolesPersistedAsync(rolesToRemove);
-                    }
+                    await user.RemoveRolesPersistedAsync(rolesToRemove);
                 }
             }
 
@@ -219,7 +216,7 @@ namespace DiscordBot6 {
                 await user.AddRolesPersistedAsync(rolesAdded);
             }
 
-            if ( rolesRemoved.Count > 0) {
+            if (rolesRemoved.Count > 0) {
                 await user.RemoveRolesPersistedAsync(rolesRemoved);
             }     
         }

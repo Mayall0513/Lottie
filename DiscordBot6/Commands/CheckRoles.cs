@@ -50,7 +50,8 @@ namespace DiscordBot6.Commands {
                     mutePersistsBuilder.Append("<@&").Append(persistedRole.Id).Append("> `").Append(persistedRole.Name).Append("`").Append(DiscordBot6.DiscordNewLine);
                 }
 
-                await Context.Channel.SendGenericSuccessResponseAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
+                SocketGuildUser guildUser = Context.Guild.GetUser(userId);
+                await Context.Channel.SendGenericSuccessResponseAsync(userId, guildUser?.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
             }
         }
 

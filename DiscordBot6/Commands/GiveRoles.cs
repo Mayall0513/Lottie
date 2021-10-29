@@ -55,6 +55,7 @@ namespace DiscordBot6.Commands {
 
                 if (!anyRoles) {
                     await Context.Channel.SendGenericErrorResponseAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errorMessages);
+                    return;
                 }
 
                 IEnumerable<ulong> rolesToPersist = validRoles.Select(role => role.Id).Union(phantomRoles);

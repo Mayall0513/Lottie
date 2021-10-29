@@ -121,6 +121,10 @@ namespace DiscordBot6 {
         }
 
         public bool IsMutePersisted(ulong channelId) {
+            if(mutesPersisted == null) {
+                mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
+            }
+
             return mutesPersisted.ContainsKey(channelId);
         }
 

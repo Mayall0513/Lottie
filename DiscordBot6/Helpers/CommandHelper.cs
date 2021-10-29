@@ -116,7 +116,7 @@ namespace DiscordBot6.Helpers {
                 }
             }
 
-            return validRoles.Count > 0 || lockedRoles.Count > 0 || phantomRoles.Count > 0;
+            return validRoles.Count > 0 || phantomRoles.Count > 0;
         }
     }
 }

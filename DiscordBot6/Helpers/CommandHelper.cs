@@ -5,7 +5,6 @@ using System.Linq;
 
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {
-
         public static bool GetTimeSpan(string[] arguments, out TimeSpan timeSpan, out string[] errors, TimeSpan? minimumTimeSpan = null) {
             List<string> errorsList = new List<string>();
 
@@ -69,6 +68,12 @@ namespace DiscordBot6.Helpers {
 
             errors = errorsList.ToArray();
             return errorsList.Count == 0;
+        }
+
+        public static string GetResponseTimeStamp(DateTime dateTime) {
+            ulong timeStamp = (ulong) (dateTime - DateTime.UnixEpoch).TotalSeconds;
+
+            return $"<t:{timeStamp}:R>";
         }
 
         public static bool GetRoles(IEnumerable<string> arguments, SocketGuild guild, SocketGuildUser caller, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles) {

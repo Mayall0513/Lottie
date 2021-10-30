@@ -92,13 +92,16 @@ namespace DiscordBot6 {
                 mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
             }
         
-            if (mutesPersisted.ContainsKey(channelId)) {
+            else if (mutesPersisted.ContainsKey(channelId)) {
                 mutesPersisted[channelId].Expiry = expiry;
                 await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
             }
 
-            MutePersist mutePersist = new MutePersist() { ServerId = Parent.Id, UserId = Id, ChannelId = channelId, Expiry = expiry };
-            mutesPersisted.TryAdd(channelId, mutePersist);
+            else {
+                MutePersist mutePersist = new MutePersist() { ServerId = Parent.Id, UserId = Id, ChannelId = channelId, Expiry = expiry };
+                mutesPersisted.TryAdd(channelId, mutePersist);
+            }
+
             await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
         }
 
@@ -115,14 +118,14 @@ namespace DiscordBot6 {
                 mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
             }
 
-            if (mutesPersisted.TryRemove(channelId, out _)) {
+            else if (mutesPersisted.TryRemove(channelId, out _)) {
                 await Repository.RemoveMutePersistedAsync(Parent.Id, Id, channelId);
             }
         }
 
         public bool IsMutePersisted(ulong channelId) {
-            if(mutesPersisted == null) {
-                mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
+            if (mutesPersisted == null) {
+                return false;
             }
 
             return mutesPersisted.ContainsKey(channelId);

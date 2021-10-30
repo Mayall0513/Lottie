@@ -12,7 +12,7 @@ namespace DiscordBot6.Helpers {
 
         // Successes
         
-        public static async Task SendGenericSuccessResponseAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message) {
+        public static async Task SendGenericSuccessAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message) {
             await CreateResponse(channel)
                 .WithSubject(subjectId, subjectAvatar)
                 .WithText(message)
@@ -29,30 +29,54 @@ namespace DiscordBot6.Helpers {
         }
 
 
-        public static async Task SendTimeFrameSuccessResponseAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, DateTime start, TimeSpan period) {
+        public static async Task SendTimedChannelMuteSuccessAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, string channelIdentifier, DateTime start, TimeSpan period) {
+            DateTime end = start + period;
+
             await CreateResponse(channel)
                 .WithSubject(subjectId, subjectAvatar)
                 .WithText(message)
-                .WithField("Start", start.ToString(), true)
-                .WithField("End", (start + period).ToString(), true)
+                .WithField("Channel", channelIdentifier)
+                .WithField("Start", CommandHelper.GetResponseTimeStamp(start), true)
+                .WithField("End", CommandHelper.GetResponseTimeStamp(end), true)
                 .WithColor(Color.Green)
                 .SendMessageAsync();
         }
 
-        public static async Task LogTimeFrameSuccessResponseAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, DateTime start, TimeSpan period) {
+        public static async Task LogTimedChannelMuteSuccessAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, string channelIdentifier, DateTime start, TimeSpan period) {
+            DateTime end = start + period;
+
             await CreateResponse(channel)
                .WithSubject(subjectId, subjectAvatar)
                .WithText(message)
-               .WithField("Start", start.ToString(), true)
-               .WithField("End", (start + period).ToString(), true)
+               .WithField("Channel", channelIdentifier)
+               .WithField("Start", CommandHelper.GetResponseTimeStamp(start), true)
+               .WithField("End", CommandHelper.GetResponseTimeStamp(end), true)
                .WithColor(Color.LighterGrey)
                .SendMessageAsync();
+        }
+
+        public static async Task SendChannelMuteSuccessAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, string channelIdentifier) {
+            await CreateResponse(channel)
+                .WithSubject(subjectId, subjectAvatar)
+                .WithText(message)
+                .WithField("Channel", channelIdentifier)
+                .WithColor(Color.Green)
+                .SendMessageAsync();
+        }
+
+        public static async Task LogChannelMuteSuccessAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, string channelIdentifier) {
+            await CreateResponse(channel)
+                .WithSubject(subjectId, subjectAvatar)
+                .WithText(message)
+                .WithField("Channel", channelIdentifier)
+                .WithColor(Color.LighterGrey)
+                .SendMessageAsync();
         }
 
 
         // Errors
 
-        public static async Task SendGenericErrorResponseAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, params string[] errors) {
+        public static async Task SendGenericErrorAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, params string[] errors) {
             await CreateResponse(channel)
                 .WithSubject(subjectId, subjectAvatar)
                 .WithErrors(errors)
@@ -60,23 +84,23 @@ namespace DiscordBot6.Helpers {
                 .SendMessageAsync();
         }
 
-        public static async Task SendNoPermissionResponseAsync(this IMessageChannel channel, IUser user) {
-            await SendGenericErrorResponseAsync(channel, user.Id, user.GetAvatarUrl(size: 64), $"You're not allowed to do that!");
+        public static async Task SendNoPermissionAsync(this IMessageChannel channel, IUser user) {
+            await SendGenericErrorAsync(channel, user.Id, user.GetAvatarUrl(size: 64), $"You're not allowed to do that");
         }
 
-        public static async Task SendUserNotFoundResponseAsync(this IMessageChannel channel, ulong userId) {
-            await SendGenericErrorResponseAsync(channel, userId, null, $"Could not find user with id `{userId}`!");
+        public static async Task SendUserNotFoundAsync(this IMessageChannel channel, ulong userId) {
+            await SendGenericErrorAsync(channel, userId, null, $"Could not find user with id `{userId}`");
         }
 
-        public static async Task SendUserNotInVoiceChannelResponseAsync(this IMessageChannel channel, IUser user) {
-            await SendGenericErrorResponseAsync(channel, user.Id, user.GetAvatarUrl(size: 64), $"{user.Mention} is not in a voice channel!");
+        public static async Task SendUserNotInVoiceChannelAsync(this IMessageChannel channel, IUser user) {
+            await SendGenericErrorAsync(channel, user.Id, user.GetAvatarUrl(size: 64), $"{user.Mention} is not in a voice channel");
         }
 
 
 
         // Mixed
 
-        public static async Task SendGenericMixedResponseAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, params string[] errors) {
+        public static async Task SendGenericMixedAsync(this IMessageChannel channel, ulong subjectId, string subjectAvatar, string message, params string[] errors) {
             await CreateResponse(channel)
                 .WithSubject(subjectId, subjectAvatar)
                 .WithText(message)

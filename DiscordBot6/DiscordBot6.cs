@@ -127,7 +127,7 @@ namespace DiscordBot6 {
                     await server.SetUserAsync(socketGuildUser.Id, user);
                 }
 
-                if ((beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
+                if (afterVoiceState.VoiceChannel != null && (beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
                     IEnumerable<ulong> mutePersists = user.GetMutesPersisted().Select(mutePersist => mutePersist.ChannelId); // get channel specific mute persists
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
@@ -226,8 +226,13 @@ namespace DiscordBot6 {
             IEnumerable<ulong> rolesPersisted = await user.GetRolesPersistedAsync();
 
             if (rolesPersisted.Any()) { // this user has role persists on this server
+                IEnumerable<ulong> trueServerIds = socketUser.Guild.Roles.Where(role => rolesPersisted.Contains(role.Id))
+                    .Select(role => role.Id);
+
+                // add a step to remove invalid roles from the persist list
+
                 user.IncrementRolesUpdated();
-                await socketUser.AddRolesAsync(rolesPersisted);
+                await socketUser.AddRolesAsync(trueServerIds);
             }
         }
     }

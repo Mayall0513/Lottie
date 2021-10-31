@@ -21,8 +21,9 @@ namespace DiscordBot6.Timing {
             } 
         }
 
-        private DateTime? expiry;
+        public virtual bool Expired => Expiry.HasValue && expiry.Value < DateTime.UtcNow;
 
+        private DateTime? expiry;
         private Timer timer;
 
         ~TimedObject() {

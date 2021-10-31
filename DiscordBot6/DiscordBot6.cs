@@ -19,8 +19,8 @@ namespace DiscordBot6 {
 
         public static ulong BotAccountId => Client.CurrentUser.Id;
 
-        public const char DiscordNewLine = '\n';
-        public const char DefaultCommandPrefix = '+';
+        public const string DiscordNewLine = "\n";
+        public const string DefaultCommandPrefix = "+";
 
         public static async Task Main(string[] _0) {
             DiscordShardedClient shardClient = new DiscordShardedClient();
@@ -61,7 +61,7 @@ namespace DiscordBot6 {
                 if (socketMessage.Author.Id != BotAccountId && server.IsCommandChannel(socketMessage.Channel.Id)) { // message was not sent by the bot and was sent in a command channel
                     int argumentIndex = 0;
 
-                    if (socketUserMessage.HasCharPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
+                    if (socketUserMessage.HasStringPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
                         SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
                         await CommandService.ExecuteAsync(commandContext, argumentIndex, null);
                     }

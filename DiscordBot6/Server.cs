@@ -32,7 +32,7 @@ namespace DiscordBot6 {
         public ulong LogChannelId => logChannelId.Value;
         public bool HasLogChannel => logChannelId.HasValue;
 
-        private readonly char? commandPrefix;
+        private readonly string commandPrefix;
         private readonly ulong? logChannelId;
 
         public bool AutoMutePersist { get; }
@@ -47,7 +47,7 @@ namespace DiscordBot6 {
         private CRUConstraints checkMutesConstraints;
         private CRUConstraints checkRolesConstraints;
 
-        public Server(ulong id, char? commandPrefix, ulong? logChannelId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels) {
+        public Server(ulong id, string commandPrefix, ulong? logChannelId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels) {
             Id = id;
 
             this.commandPrefix = commandPrefix;
@@ -178,7 +178,7 @@ namespace DiscordBot6 {
             return commandChannels.Count == 0 || commandChannels.Contains(channelId);
         }
 
-        public char GetCommandPrefix() {
+        public string GetCommandPrefix() {
             return commandPrefix ?? DiscordBot6.DefaultCommandPrefix;
         }
     }

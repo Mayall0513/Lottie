@@ -77,7 +77,7 @@ namespace DiscordBot6.Helpers {
             return $"<t:{timeStamp}:R>";
         }
 
-        public static bool GetRoles(IEnumerable<string> arguments, SocketGuild guild, SocketGuildUser caller, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles) {
+        public static int GetRoles(IEnumerable<string> arguments, SocketGuild guild, SocketGuildUser caller, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles) {
             validRoles = new HashSet<SocketRole>();
             lockedRoles = new HashSet<SocketRole>();
             phantomRoles = new HashSet<ulong>();
@@ -91,6 +91,7 @@ namespace DiscordBot6.Helpers {
 
                     if (socketRole == null) {
                         phantomRoles.Add(roleId);
+                        continue;
                     }
                 }
 
@@ -100,21 +101,20 @@ namespace DiscordBot6.Helpers {
 
                     if (socketRole == null) {
                         invalidRoles.Add(argument);
+                        continue;
                     }
                 }
 
-                if (socketRole != null) {
-                    if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
-                        lockedRoles.Add(socketRole);
-                    }
+                if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
+                    lockedRoles.Add(socketRole);
+                }
 
-                    else {
-                        validRoles.Add(socketRole);
-                    }
+                else {
+                    validRoles.Add(socketRole);
                 }
             }
 
-            return validRoles.Count > 0 || phantomRoles.Count > 0;
+            return validRoles.Count + phantomRoles.Count;
         }
 
         public static string GetUserIdentifier(ulong userId, IUser user = null) {

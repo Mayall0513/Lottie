@@ -4,7 +4,7 @@ namespace DiscordBot6.Database.Models {
     public sealed class ServerModel : IModelFor<Server> {
         public ulong Id { get; set; }
 
-        public char? CommandPrefix { get; set; }
+        public string CommandPrefix { get; set; }
         public ulong? LogChannelId { get; set; }
 
         public bool AutoMutePersist { get; set; }

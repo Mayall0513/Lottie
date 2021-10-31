@@ -77,7 +77,7 @@ namespace DiscordBot6.PhraseRules {
                 return false;
             }
 
-            if (!matchSelf && socketMessage.Author.Id == DiscordBot6.BotAccountId) { // we're not allowed to check ourselves
+            if (!matchSelf && socketMessage.Author.Id == guildUser.Guild.CurrentUser.Id) { // we're not allowed to check ourselves
                 return false;
             }
 

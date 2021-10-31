@@ -14,37 +14,38 @@ using System.Threading.Tasks;
 
 namespace DiscordBot6 {
     public static class DiscordBot6 {
-        public static DiscordSocketClient Client { get; private set; }
+        public static DiscordShardedClient Client { get; private set; }
         public static CommandService CommandService { get; private set; }
-
-        public static ulong BotAccountId => Client.CurrentUser.Id;
 
         public const string DiscordNewLine = "\n";
         public const string DefaultCommandPrefix = "+";
 
         public static async Task Main(string[] _0) {
-            DiscordShardedClient shardClient = new DiscordShardedClient();
+            Client = new DiscordShardedClient();
 
             CommandService = new CommandService();
             await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
-            shardClient.ShardReady += Client_ShardReady;
-            shardClient.MessageReceived += Client_MessageReceived;
-            shardClient.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
-            shardClient.GuildMemberUpdated += Client_GuildMemberUpdated;
-            shardClient.UserJoined += Client_UserJoined;
+            Client.ShardReady += Client_ShardReady;
+            Client.MessageReceived += Client_MessageReceived;
+            Client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
+            Client.GuildMemberUpdated += Client_GuildMemberUpdated;
+            Client.UserJoined += Client_UserJoined;
 
-            await shardClient.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
-            await shardClient.StartAsync();
+            await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["BotToken"], true);
+            await Client.StartAsync();
             await Task.Delay(-1);
         }
 
         private static async Task Client_ShardReady(DiscordSocketClient client) {
-            Client = client;
-
             await foreach (MutePersist mutePersist in Repository.GetMutePersistsAllAsync(client.Guilds.Select(guild => guild.Id))) {
                 Server server = await Server.GetServerAsync(mutePersist.ServerId);
                 User user = await server.GetUserAsync(mutePersist.UserId);
+
+                if (mutePersist.Expired) {
+                    await Repository.RemoveMutePersistedAsync(mutePersist.ServerId, mutePersist.UserId, mutePersist.ChannelId);
+                    continue;
+                }
 
                 user.PrecacheMutePersisted(mutePersist);
             }
@@ -58,11 +59,11 @@ namespace DiscordBot6 {
             if (socketMessage.Channel is SocketGuildChannel socketGuildChannel) { // message was sent in a server
                 Server server = await socketGuildChannel.Guild.GetServerAsync();
 
-                if (socketMessage.Author.Id != BotAccountId && server.IsCommandChannel(socketMessage.Channel.Id)) { // message was not sent by the bot and was sent in a command channel
+                if (socketMessage.Author.Id != socketGuildChannel.Guild.CurrentUser.Id && server.IsCommandChannel(socketMessage.Channel.Id)) { // message was not sent by the bot and was sent in a command channel
                     int argumentIndex = 0;
 
                     if (socketUserMessage.HasStringPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
-                        SocketCommandContext commandContext = new SocketCommandContext(Client, socketUserMessage);
+                        SocketCommandContext commandContext = new SocketCommandContext(Client.GetShardFor(socketGuildChannel.Guild), socketUserMessage);
                         await CommandService.ExecuteAsync(commandContext, argumentIndex, null);
                     }
                 }

@@ -114,7 +114,6 @@ namespace DiscordBot6 {
                 }
                 
                 users.TryAdd(id, user);
-
                 return user;
             }
 

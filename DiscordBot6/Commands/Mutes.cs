@@ -26,7 +26,10 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayMute(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionAsync(socketGuildUser);
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .SendNoPermissionAsync();
+
                     return;
                 }
 
@@ -40,13 +43,17 @@ namespace DiscordBot6.Commands {
                 }
 
                 string mutedIdentifier = CommandHelper.GetUserIdentifier(userId, socketUser);
-                await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Muted {mutedIdentifier}");
+
+                await Context.Channel.CreateResponse()
+                    .WithSubject(userId, socketUser?.GetAvatarUrl(size: 64))
+                    .SendGenericSuccessAsync($"Muted {mutedIdentifier}");
 
                 if (server.HasLogChannel) {
                     string muterIdentifier = CommandHelper.GetUserIdentifier(socketGuildUser.Id, socketGuildUser);
 
-                    await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{muterIdentifier} muted {mutedIdentifier}");
+                    await Context.Guild.GetTextChannel(server.LogChannelId).CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .LogGenericSuccessAsync($"{muterIdentifier} muted {mutedIdentifier}");
                 }
             }
         }

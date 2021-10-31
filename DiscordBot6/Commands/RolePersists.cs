@@ -33,7 +33,10 @@ namespace DiscordBot6.Commands {
 
         public async Task AddCommandImpl(ulong userId, string[] roles) {
             if (roles.Length == 0) {
-                await Context.Channel.SendGenericErrorAsync(Context.User.Id, Context.User.GetAvatarUrl(size: 64), "You must list roles after the user's ID");
+                await Context.Channel.CreateResponse()
+                    .WithSubject(Context.User.Id, Context.User.GetAvatarUrl(size: 64))
+                    .SendGenericErrorsAsync("You must list roles after the user's ID");
+
                 return;
             }
 
@@ -42,11 +45,15 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayGiveRoles(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionAsync(socketGuildUser);
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .SendNoPermissionAsync();
+
                     return;
                 }
 
-                bool newRoles = CommandHelper.GetRoles(roles, Context.Guild, socketGuildUser, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles);
+                int newRoleCount = CommandHelper.GetRoles(roles, Context.Guild, socketGuildUser, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles);
+
                 string[] errorMessages = new string[lockedRoles.Count + invalidRoles.Count];
                 int index = 0;
 
@@ -60,8 +67,11 @@ namespace DiscordBot6.Commands {
                     errorMessages[index++] = $"Could not find role with name `{invalidRole}`";
                 }
 
-                if (!newRoles) {
-                    await Context.Channel.SendGenericErrorAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errorMessages);
+                if (newRoleCount > 0) {
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .SendGenericErrorsAsync(errorMessages);
+
                     return;
                 }
 
@@ -84,18 +94,23 @@ namespace DiscordBot6.Commands {
                 string persistedIdentifier = CommandHelper.GetUserIdentifier(userId, socketUser);
 
                 if (errorMessages.Length > 0) {
-                    await Context.Channel.SendGenericMixedAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Gave roles to {persistedIdentifier}{newRolesList}", errorMessages);
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(userId, socketUser?.GetAvatarUrl(size: 64))
+                        .SendGenericMixedAsync($"Gave roles to {persistedIdentifier}{newRolesList}", errorMessages);
                 }
 
                 else {
-                    await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Gave roles to {persistedIdentifier}{newRolesList}");
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(userId, socketUser?.GetAvatarUrl(size: 64))
+                        .SendGenericSuccessAsync($"Gave roles to {persistedIdentifier}{newRolesList}");
                 }
 
                 if (server.HasLogChannel) {
                     string persisterIdentifier = CommandHelper.GetUserIdentifier(socketGuildUser.Id, socketGuildUser);
 
-                    await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{persisterIdentifier} gave roles to {persistedIdentifier}{newRolesList}");
+                    await Context.Guild.GetTextChannel(server.LogChannelId).CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .LogGenericSuccessAsync($"{persisterIdentifier} gave roles to {persistedIdentifier}{newRolesList}");
                 }
             }
         }
@@ -106,13 +121,19 @@ namespace DiscordBot6.Commands {
 
                 IEnumerable<ulong> userRoleIds = socketGuildUser.Roles.Select(role => role.Id);
                 if (!await server.UserMayCheckRolePersists(socketGuildUser.Id, userRoleIds)) {
-                    await Context.Channel.SendNoPermissionAsync(socketGuildUser);
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64))
+                        .SendNoPermissionAsync();
+
                     return;
                 }
 
                 User serverUser = await server.GetUserAsync(userId);
                 if (serverUser == null) {
-                    await Context.Channel.SendUserNotFoundAsync(userId);
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(userId, null)
+                        .SendUserNotFoundAsync(userId);
+
                     return;
                 }
 
@@ -120,7 +141,10 @@ namespace DiscordBot6.Commands {
                 SocketGuildUser socketUser = Context.Guild.GetUser(userId);
 
                 if (!persistedRoleIds.Any()) {
-                    await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), "User has no role persists");
+                    await Context.Channel.CreateResponse()
+                        .WithSubject(userId, socketUser?.GetAvatarUrl(size: 64))
+                        .SendGenericSuccessAsync("User has no role persists");
+
                     return;
                 }
 
@@ -133,7 +157,9 @@ namespace DiscordBot6.Commands {
                     mutePersistsBuilder.Append(roleIdentifier).Append(DiscordBot6.DiscordNewLine);
                 }
 
-                await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
+                await Context.Channel.CreateResponse()
+                    .WithSubject(userId, socketUser?.GetAvatarUrl(size: 64))
+                    .SendGenericSuccessAsync(mutePersistsBuilder.ToString());
             }
         }
     }

@@ -46,49 +46,56 @@ namespace DiscordBot6.Commands {
                     return;
                 }
 
-                bool anyRoles = CommandHelper.GetRoles(roles, Context.Guild, socketGuildUser, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles);
+                bool newRoles = CommandHelper.GetRoles(roles, Context.Guild, socketGuildUser, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles);
                 string[] errorMessages = new string[lockedRoles.Count + invalidRoles.Count];
                 int index = 0;
 
-                foreach(SocketRole lockedRole in lockedRoles) {
-                    errorMessages[index++] = $"Could not give {lockedRole.Mention} since it is above you or me in the role hierarchy";
+                foreach (SocketRole lockedRole in lockedRoles) {
+                    string lockedRoleIdentifier = CommandHelper.GetRoleIdentifier(lockedRole.Id, lockedRole);
+
+                    errorMessages[index++] = $"Could not give {lockedRoleIdentifier} since it is above you or me in the role hierarchy";
                 }
 
                 foreach (string invalidRole in invalidRoles) {
                     errorMessages[index++] = $"Could not find role with name `{invalidRole}`";
                 }
 
-                if (!anyRoles) {
+                if (!newRoles) {
                     await Context.Channel.SendGenericErrorAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), errorMessages);
                     return;
                 }
 
-                IEnumerable<ulong> rolesToPersist = validRoles.Select(role => role.Id).Union(phantomRoles);
                 User serverUser = await server.GetUserAsync(userId);
-                await serverUser.AddRolesPersistedAsync(rolesToPersist);
+                await serverUser.AddRolesPersistedAsync(validRoles.Select(role => role.Id).Union(phantomRoles));
 
-                SocketGuildUser guildUser = Context.Guild.GetUser(userId);
-                if (guildUser != null && validRoles.Count > 0) {
-                    await guildUser.AddRolesAsync(validRoles);
+                SocketGuildUser socketUser = Context.Guild.GetUser(userId);
+                if (socketUser != null && validRoles.Count > 0) {
+                    await socketUser.AddRolesAsync(validRoles);
                 }
 
-                IEnumerable<string> newRoleIdentifiers = validRoles.Select(role => $"{role.Mention} (`{role.Name}`)");
-                //.Union(phantomRoles.Select(role => $"`{role}`")); // phantom roles are disabled for now
+                IEnumerable<string> newRoleIdentifiers = validRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))
+                    .Union(phantomRoles.Select(roleId => CommandHelper.GetRoleIdentifier(roleId, null)));
 
-                string userIdentifier = guildUser == null ? $"`{userId}`" : $"{guildUser.Mention} (`{guildUser.Username}`)";
-                string messageSuffix = $"{string.Join(", ", newRoleIdentifiers)} to {userIdentifier}";
+                string newRolesList = new StringBuilder()
+                    .Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine)
+                    .Append("**Roles:**").Append(DiscordBot6.DiscordNewLine)
+                    .Append(string.Join(DiscordBot6.DiscordNewLine, newRoleIdentifiers)).ToString();
+
+                string persistedIdentifier = CommandHelper.GetUserIdentifier(userId, socketUser);
 
                 if (errorMessages.Length > 0) {
-                    await Context.Channel.SendGenericMixedAsync(userId, guildUser?.GetAvatarUrl(size: 64), $"Gave {messageSuffix}", errorMessages);
+                    await Context.Channel.SendGenericMixedAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Gave roles to {persistedIdentifier}{newRolesList}", errorMessages);
                 }
 
                 else {
-                    await Context.Channel.SendGenericSuccessAsync(userId, guildUser?.GetAvatarUrl(size: 64), $"Gave {messageSuffix}");
+                    await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Gave roles to {persistedIdentifier}{newRolesList}");
                 }
 
                 if (server.HasLogChannel) {
+                    string persisterIdentifier = CommandHelper.GetUserIdentifier(socketGuildUser.Id, socketGuildUser);
+
                     await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} (`{socketGuildUser.Username}`) gave {messageSuffix}");
+                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{persisterIdentifier} gave roles to {persistedIdentifier}{newRolesList}");
                 }
             }
         }
@@ -110,10 +117,10 @@ namespace DiscordBot6.Commands {
                 }
 
                 IEnumerable<ulong> persistedRoleIds = await serverUser.GetRolesPersistedAsync();
-                SocketGuildUser guildUser = Context.Guild.GetUser(userId);
+                SocketGuildUser socketUser = Context.Guild.GetUser(userId);
 
                 if (!persistedRoleIds.Any()) {
-                    await Context.Channel.SendGenericSuccessAsync(userId, guildUser?.GetAvatarUrl(size: 64), "User has no role persists");
+                    await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), "User has no role persists");
                     return;
                 }
 
@@ -122,16 +129,11 @@ namespace DiscordBot6.Commands {
                 foreach (ulong persistedRoleId in persistedRoleIds) {
                     SocketRole socketRole = Context.Guild.Roles.FirstOrDefault(role => role.Id == persistedRoleId);
 
-                    if (socketRole == null) {
-                        mutePersistsBuilder.Append("`").Append(persistedRoleId).Append("`").Append(DiscordBot6.DiscordNewLine);
-                    }
-
-                    else {
-                        mutePersistsBuilder.Append("<@&").Append(persistedRoleId).Append("> (`").Append(socketRole.Name).Append("`)").Append(DiscordBot6.DiscordNewLine);
-                    }
+                    string roleIdentifier = CommandHelper.GetRoleIdentifier(persistedRoleId, socketRole);
+                    mutePersistsBuilder.Append(roleIdentifier).Append(DiscordBot6.DiscordNewLine);
                 }
 
-                await Context.Channel.SendGenericSuccessAsync(userId, guildUser?.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
+                await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), mutePersistsBuilder.ToString());
             }
         }
     }

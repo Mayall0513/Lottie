@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -83,45 +84,67 @@ namespace DiscordBot6.Helpers {
             invalidRoles = new List<string>();
 
             foreach (string argument in arguments) {
+                SocketRole socketRole;
+
                 if (ulong.TryParse(argument, out ulong roleId)) {
-                    SocketRole socketRole = guild.Roles.FirstOrDefault(role => role.Id == roleId);
+                    socketRole = guild.Roles.FirstOrDefault(role => role.Id == roleId);
 
                     if (socketRole == null) {
                         phantomRoles.Add(roleId);
-                    }
-
-                    else {
-                        if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
-                            lockedRoles.Add(socketRole);
-                        }
-
-                        else {
-                            validRoles.Add(socketRole);
-                        }
                     }
                 }
 
                 else {
                     string argumentLower = argument.Trim().ToLower();
-                    SocketRole socketRole = guild.Roles.FirstOrDefault(role => role.Name.ToLower() == argumentLower);
+                    socketRole = guild.Roles.FirstOrDefault(role => role.Name.ToLower() == argumentLower);
 
                     if (socketRole == null) {
                         invalidRoles.Add(argument);
                     }
+                }
+
+                if (socketRole != null) {
+                    if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
+                        lockedRoles.Add(socketRole);
+                    }
 
                     else {
-                        if (socketRole.Position > caller.Hierarchy || socketRole.Position >= guild.CurrentUser.Hierarchy) {
-                            lockedRoles.Add(socketRole);
-                        }
-
-                        else {
-                            validRoles.Add(socketRole);
-                        }
+                        validRoles.Add(socketRole);
                     }
                 }
             }
 
             return validRoles.Count > 0 || phantomRoles.Count > 0;
+        }
+
+        public static string GetUserIdentifier(ulong userId, IUser user = null) {
+            if (user == null) {
+                return $"`{userId}`";
+            }
+
+            else {
+                return $"{user.Mention} (`{user.Username}`)";
+            }
+        }
+
+        public static string GetRoleIdentifier(ulong roleId, IRole role = null) {
+            if (role == null) {
+                return $"`{roleId}`";
+            }
+
+            else {
+                return $"{role.Mention} (`{role.Name}`)";
+            }
+        }
+
+        public static string GetChannelIdentifier(ulong channelId, IChannel channel = null) {
+            if (channel == null) {
+                return $"`{channelId}`";
+            }
+
+            else {
+                return $"<#{channel.Id}> (`{channel.Name}`)";
+            }
         }
     }
 }

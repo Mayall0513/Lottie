@@ -34,17 +34,19 @@ namespace DiscordBot6.Commands {
                 serverUser.GlobalMutePersisted = true;
                 await server.SetUserAsync(userId, serverUser);
 
-                SocketGuildUser guildUser = Context.Guild.GetUser(userId);
-                if (guildUser?.VoiceChannel != null && !guildUser.IsMuted) {
-                    await guildUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
+                SocketGuildUser socketUser = Context.Guild.GetUser(userId);
+                if (socketUser?.VoiceChannel != null && !socketUser.IsMuted) { 
+                    await socketUser.ModifyAsync(userProperties => { userProperties.Mute = true; });
                 }
 
-                string messageSuffix = guildUser == null ? $"`{userId}`" : $"{guildUser.Mention} (`{guildUser.Username}`";
-                await Context.Channel.SendGenericSuccessAsync(userId, guildUser?.GetAvatarUrl(size: 64), $"Muted {messageSuffix}");
+                string mutedIdentifier = CommandHelper.GetUserIdentifier(userId, socketUser);
+                await Context.Channel.SendGenericSuccessAsync(userId, socketUser?.GetAvatarUrl(size: 64), $"Muted {mutedIdentifier}");
 
                 if (server.HasLogChannel) {
+                    string muterIdentifier = CommandHelper.GetUserIdentifier(socketGuildUser.Id, socketGuildUser);
+
                     await Context.Guild.GetTextChannel(server.LogChannelId)
-                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{socketGuildUser.Mention} (`{socketGuildUser.Username}`) muted {messageSuffix}");
+                        .LogGenericSuccessAsync(socketGuildUser.Id, socketGuildUser.GetAvatarUrl(size: 64), $"{muterIdentifier} muted {mutedIdentifier}");
                 }
             }
         }

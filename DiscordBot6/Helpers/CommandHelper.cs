@@ -1,11 +1,28 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using PCRE;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {
+        private static readonly PcreRegex timeSpanElementRegex;
+
+        static CommandHelper() {
+            timeSpanElementRegex = new PcreRegex("[1-9][0-9]*[wdhms]", PcreOptions.Compiled | PcreOptions.Caseless);
+        }
+
+        public static int SplitTimeSpan(string[] arguments) {
+            for (int i = arguments.Length - 1; i >= 0; --i) {
+                if (!timeSpanElementRegex.IsMatch(arguments[i])) {
+                    return i + 1;
+                }
+            }
+
+            return 0;
+        }
+
         public static bool GetTimeSpan(string[] arguments, out TimeSpan timeSpan, out string[] errors, TimeSpan? minimumTimeSpan = null) {
             List<string> errorsList = new List<string>();
 
@@ -28,7 +45,7 @@ namespace DiscordBot6.Helpers {
                         continue;
                     }
 
-                    char finalCharacter = argument[^1];
+                    char finalCharacter = char.ToLower(argument[^1]);
                     switch (finalCharacter) {
                         case 'w':
                             days += numArgument * 7;

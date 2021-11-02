@@ -1,8 +1,10 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot6.Commands.Contexts;
 using DiscordBot6.ContingentRoles;
 using DiscordBot6.Database;
+using DiscordBot6.Helpers;
 using DiscordBot6.Timing;
 using System;
 using System.Collections.Concurrent;
@@ -49,6 +51,18 @@ namespace DiscordBot6 {
 
                 user.PrecacheMutePersisted(mutePersist);
             }
+
+            await foreach (RolePersist rolePersist in Repository.GetRolePersistsAllAsync(client.Guilds.Select(guild => guild.Id))) {
+                Server server = await Server.GetServerAsync(rolePersist.ServerId);
+                User user = await server.GetUserAsync(rolePersist.UserId);
+
+                if (rolePersist.Expired) {
+                    await Repository.RemoveRolePersistedAsync(rolePersist.ServerId, rolePersist.UserId, rolePersist.RoleId);
+                    continue;
+                }
+
+                user.PrecacheRolePersisted(rolePersist);
+            }
         }
 
         private static async Task Client_MessageReceived(SocketMessage socketMessage) {
@@ -63,7 +77,7 @@ namespace DiscordBot6 {
                     int argumentIndex = 0;
 
                     if (socketUserMessage.HasStringPrefix(server.GetCommandPrefix(), ref argumentIndex)) {
-                        SocketCommandContext commandContext = new SocketCommandContext(Client.GetShardFor(socketGuildChannel.Guild), socketUserMessage);
+                        SocketGuildCommandContext commandContext = new SocketGuildCommandContext(Client.GetShardFor(socketGuildChannel.Guild), socketUserMessage);
                         await CommandService.ExecuteAsync(commandContext, argumentIndex, null);
                     }
                 }
@@ -84,7 +98,7 @@ namespace DiscordBot6 {
             }
         }
 
-        private static async Task Client_UserVoiceStateUpdated(SocketUser socketUser, SocketVoiceState beforeVoiceState, SocketVoiceState afterVoiceState) {
+        private static async Task Client_UserVoiceStateUpdated (SocketUser socketUser, SocketVoiceState beforeVoiceState, SocketVoiceState afterVoiceState) {
             if (afterVoiceState.VoiceChannel == null) { // they just left
                 return; // there's nothing we want to do if a user leaves the channel
             }
@@ -93,9 +107,7 @@ namespace DiscordBot6 {
                 Server server = await socketGuildUser.Guild.GetServerAsync();
                 User user = await server.GetUserAsync(socketUser.Id);
 
-                if (user.DecrementVoiceStatusUpdated()) { // this is an event that we triggered and therefore should ignore
-                    return;
-                }
+                bool botTriggered = user.DecrementRolesUpdated();
 
                 if (beforeVoiceState.VoiceChannel == null) { // they just joined
                     if (user.GlobalMutePersisted && !afterVoiceState.IsMuted) { // user is not muted and should be 
@@ -118,10 +130,12 @@ namespace DiscordBot6 {
                             await user.RemoveMutePersistedAsync(afterVoiceState.VoiceChannel.Id);
                         }  
 
-                        user.GlobalMutePersisted = afterVoiceState.IsMuted;
+                        if (!botTriggered && server.AutoMutePersist) {
+                            user.GlobalMutePersisted = afterVoiceState.IsMuted;
+                        }
                     }
 
-                    if (server.AutoDeafenPersist && deafenChanged) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
+                    if (!botTriggered && server.AutoDeafenPersist && deafenChanged) { // the user was (un)muted or (un)deafened AND the server wants to automatically persist the change
                         user.GlobalDeafenPersisted = afterVoiceState.IsDeafened;
                     }
 
@@ -129,7 +143,7 @@ namespace DiscordBot6 {
                 }
 
                 if (afterVoiceState.VoiceChannel != null && (beforeVoiceState.VoiceChannel != afterVoiceState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
-                    IEnumerable<ulong> mutePersists = user.GetMutesPersisted().Select(mutePersist => mutePersist.ChannelId); // get channel specific mute persists
+                    IEnumerable<ulong> mutePersists = user.GetMutesPersistedIds(); // get channel specific mute persists
                     bool channelPersisted = mutePersists.Contains(afterVoiceState.VoiceChannel.Id);
 
                     if (channelPersisted != afterVoiceState.IsMuted) { // something needs to be changed
@@ -157,64 +171,22 @@ namespace DiscordBot6 {
             Server server = await beforeUser.Guild.GetServerAsync();
             User user = await server.GetUserAsync(beforeUser.Id);
 
-            if (user.DecrementRolesUpdated()) { // this is an event that we triggered and therefore should ignore
-                return;
-            }
+            bool botTriggered = user.DecrementRolesUpdated();
 
             if (rolesAdded.Count > 0) { // roles were added
-                IEnumerable<ContingentRole> contingentRoles = await server.GetContingentRolesAsync();
-                HashSet<ulong> rolesToRemove = new HashSet<ulong>();
-
-                foreach (ContingentRole contingentRole in contingentRoles) {
-                    if (rolesAdded.Contains(contingentRole.RoleId)) { // the user received a role that disallows other roles
-                        IEnumerable<ulong> commonRoles = contingentRole.ContingentRoles.Intersect(rolesAfter);
-
-                        if (commonRoles.Any()) { // the user has roles they're no longer allowed to have
-                            rolesToRemove.UnionWith(commonRoles);
-                            await user.AddContingentRolesRemovedAsync(contingentRole.RoleId, commonRoles);
-                        }
-                    }
-                }
-
-                foreach (ulong currentRole in rolesAfter) {
-                    foreach (ContingentRole contingentRole in contingentRoles) {
-                        if (contingentRole.RoleId == currentRole) { // the user was given a role they're not allowed to have because of contingent roles they have
-                            rolesToRemove.UnionWith(contingentRole.ContingentRoles.Intersect(rolesAdded));
-                            break; // each contingent role can only match with one role the user has - no point in checking any more
-                        }
-                    }
-                }
-
-                if (rolesToRemove.Count > 0) { // there are roles we need to remove
-                    user.IncrementRolesUpdated();
-                    await beforeUser.RemoveRolesAsync(rolesToRemove);
-                    await user.RemoveRolesPersistedAsync(rolesToRemove);
-                }
+                await server.UpdateContingentRoles_AddedAsync(user, beforeUser, rolesAfter);
             }
 
             if (rolesRemoved.Count > 0) { // the user had roles removed
-                ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved = await user.GetContingentRolesRemovedAsync();
+                await server.UpdateContingentRoles_RemovedAsync(user, beforeUser, rolesRemoved, botTriggered);
+            }
 
-                foreach (ulong bannedRole in contingentRolesRemoved.Keys) {
-                    if (rolesRemoved.Contains(bannedRole)) { // the user had one of their roles removed
-                        HashSet<ulong> rolesToAdd = contingentRolesRemoved[bannedRole];
-
-                        if (rolesToAdd.Count > 0) { // there are roles that were taken when the user was given a contingent role. we need to give those back
-                            user.IncrementRolesUpdated();
-
-                            await beforeUser.AddRolesAsync(rolesToAdd);
-                            await user.RemoveContingentRoleRemovedAsync(bannedRole);
-
-                            if (server.AutoRolePersist) {
-                                await user.AddRolesPersistedAsync(rolesToAdd);
-                            }
-                        }
-                    }
-                }
+            if (botTriggered) {
+                return;
             }
 
             if (server.AutoRolePersist && rolesAdded.Count > 0) {
-                await user.AddRolesPersistedAsync(rolesAdded);
+                await user.AddRolesPersistedAsync(rolesAdded, null);
             }
 
             if (rolesRemoved.Count > 0) {
@@ -224,16 +196,21 @@ namespace DiscordBot6 {
 
         private static async Task Client_UserJoined(SocketGuildUser socketUser) {
             User user = await socketUser.Guild.GetUserAsync(socketUser.Id);
-            IEnumerable<ulong> rolesPersisted = await user.GetRolesPersistedAsync();
+            IEnumerable<ulong> rolesPersisted = user.GetRolesPersistedIds();
 
             if (rolesPersisted.Any()) { // this user has role persists on this server
-                IEnumerable<ulong> trueServerIds = socketUser.Guild.Roles.Where(role => rolesPersisted.Contains(role.Id))
-                    .Select(role => role.Id);
+                IEnumerable<ulong> persistlessContingentRoles = (await user.GetActiveContingentRoleIds()).Except(rolesPersisted);
+                foreach(ulong contingentRole in persistlessContingentRoles) {
+                    await user.RemoveActiveContingentRoleAsync(contingentRole);
+                }
 
-                // add a step to remove invalid roles from the persist list
+                IEnumerable<ulong> userRoleIds = socketUser.Guild.Roles.Where(role => role.Position < socketUser.Guild.CurrentUser.Hierarchy)
+                    .Select(role => role.Id).Intersect(rolesPersisted)
+                    .Except(await user.GetContingentRolesRemoved());
 
-                user.IncrementRolesUpdated();
-                await socketUser.AddRolesAsync(trueServerIds);
+                if (userRoleIds.Any()) {
+                    await socketUser.AddRolesAsync(userRoleIds);
+                }
             }
         }
     }

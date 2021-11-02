@@ -26,6 +26,7 @@ namespace DiscordBot6.Database {
         public enum ConstraintIntents : uint {
             TEMPMUTE,
             MUTE,
+            GIVETEMPROLES,
             GIVEROLES,
             CHANNELMUTES,
             ROLEPERSISTS
@@ -119,19 +120,19 @@ namespace DiscordBot6.Database {
         }
 
 
-        public static async Task AddRolePersistedAsync(ulong serverId, ulong userId, ulong roleId) {
+        public static async Task AddOrUpdateRolePersistedAsync(ulong serverId, ulong userId, ulong roleId, DateTime? expiry) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            await connection.ExecuteAsync("sp_Add_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+            await connection.ExecuteAsync("sp_AddOrUpdate_RolePersist", new { serverId, userId, roleId, expiry }, commandType: CommandType.StoredProcedure);
         }
 
-        public static async Task AddRolesPersistedAsync(ulong serverId, ulong userId, IEnumerable<ulong> roleIds) {
+        public static async Task AddOrUpdateRolesPersistedAsync(ulong serverId, ulong userId, IEnumerable<ulong> roleIds, DateTime? expiry) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             await connection.OpenAsync();
 
             using MySqlTransaction transaction = await connection.BeginTransactionAsync();
 
             foreach (ulong roleId in roleIds) {
-                await transaction.ExecuteAsync("sp_Add_RolePersist", new { serverId, userId, roleId }, commandType: CommandType.StoredProcedure);
+                await transaction.ExecuteAsync("sp_AddOrUpdate_RolePersist", new { serverId, userId, roleId, expiry }, commandType: CommandType.StoredProcedure);
             }
 
             await transaction.CommitAsync();
@@ -155,13 +156,20 @@ namespace DiscordBot6.Database {
             await transaction.CommitAsync();
         }
 
-        public static async Task<IEnumerable<ulong>> GetRolesPersistsAsync(ulong serverId, ulong userId) {
+        public static async IAsyncEnumerable<RolePersist> GetRolePersistsAllAsync(IEnumerable<ulong> serverIds) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            return await connection.QueryAsync<ulong>("sp_Get_RolePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure);
+
+            foreach (ulong serverId in serverIds) {
+                IEnumerable<RolePersist> rolePersists = await connection.QueryAsync<RolePersist>("sp_Get_RolePersists_All", new { serverId }, commandType: CommandType.StoredProcedure);
+
+                foreach (RolePersist rolePersist in rolePersists) {
+                    yield return rolePersist;
+                }
+            }
         }
 
 
-        public static async Task AddMutePersistedAsync(ulong serverId, ulong userId, ulong channelId, DateTime? expiry) {
+        public static async Task AddOrUpdateMutePersistedAsync(ulong serverId, ulong userId, ulong channelId, DateTime? expiry) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             await connection.ExecuteAsync("sp_AddOrUpdate_MutePersist", new { serverId, userId, channelId, expiry }, commandType: CommandType.StoredProcedure);
         }
@@ -171,13 +179,9 @@ namespace DiscordBot6.Database {
             await connection.ExecuteAsync("sp_Remove_MutePersist", new { serverId, userId, channelId }, commandType: CommandType.StoredProcedure);
         }
 
-        public static async Task<IEnumerable<MutePersist>> GetMutePersistsAsync(ulong serverId, ulong userId) {
-            using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
-            return await connection.QueryAsync<MutePersist>("sp_Get_MutePersists", new { serverId, userId }, commandType: CommandType.StoredProcedure);
-        }
-        
         public static async IAsyncEnumerable<MutePersist> GetMutePersistsAllAsync(IEnumerable<ulong> serverIds) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
+
             foreach (ulong serverId in serverIds) {
                 IEnumerable<MutePersist> mutePersists = await connection.QueryAsync<MutePersist>("sp_Get_MutePersists_All", new { serverId }, commandType: CommandType.StoredProcedure);
 
@@ -185,7 +189,6 @@ namespace DiscordBot6.Database {
                     yield return mutePersist;
                 }
             }
-            
         }
 
 

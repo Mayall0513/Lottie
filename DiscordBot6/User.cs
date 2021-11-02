@@ -17,8 +17,8 @@ namespace DiscordBot6 {
         public Server Parent { get; set; }
 
         private ConcurrentDictionary<ulong, MutePersist> mutesPersisted; 
-        private HashSet<ulong> rolesPersisted; // stores role ids
-        private ConcurrentDictionary<ulong, HashSet<ulong>> contingentRolesRemoved;
+        private ConcurrentDictionary<ulong, RolePersist> rolesPersisted; 
+        private ConcurrentDictionary<ulong, HashSet<ulong>> activeContingentRoles;
 
 
         private int voiceStatusUpdated = 0;
@@ -32,58 +32,98 @@ namespace DiscordBot6 {
         }
 
 
-        public async Task AddRolePersistedAsync(ulong roleId) {
+        public async Task AddRolePersistedAsync(ulong roleId, DateTime? expiry) {
             if (rolesPersisted == null) {
-                await CacheRolesPersistedAsync();
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
             }
 
-            if (rolesPersisted.Add(roleId)) {
-                await Repository.AddRolePersistedAsync(Parent.Id, Id, roleId);
+            if (rolesPersisted.ContainsKey(roleId)) {
+                rolesPersisted[roleId].Expiry = expiry;
             }
+
+            else {
+                RolePersist rolePersist = new RolePersist() { ServerId = Parent.Id, UserId = Id, RoleId = roleId, Expiry = expiry };
+                rolesPersisted.TryAdd(roleId, rolePersist);
+            }
+
+            await Repository.AddOrUpdateRolePersistedAsync(Parent.Id, Id, roleId, expiry);
         }
 
-        public async Task AddRolesPersistedAsync(IEnumerable<ulong> roleIds) {
+        public async Task AddRolesPersistedAsync(IEnumerable<ulong> roleIds, DateTime? expiry) {
             if (rolesPersisted == null) {
-                await CacheRolesPersistedAsync();
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
             }
 
-            ulong[] newRoles = roleIds.Except(rolesPersisted).ToArray();
-            rolesPersisted.UnionWith(newRoles);
+            foreach(ulong roleId in roleIds) {
+                if (rolesPersisted.ContainsKey(roleId)) {
+                    rolesPersisted[roleId].Expiry = expiry;
+                }
 
-            if (newRoles.Length > 0) {
-                await Repository.AddRolesPersistedAsync(Parent.Id, Id, newRoles);
+                else {
+                    RolePersist rolePersist = new RolePersist() { ServerId = Parent.Id, UserId = Id, RoleId = roleId, Expiry = expiry };
+                    rolesPersisted.TryAdd(roleId, rolePersist);
+                }
             }
+
+            await Repository.AddOrUpdateRolesPersistedAsync(Parent.Id, Id, roleIds, expiry);
+        }
+
+        public bool PrecacheRolePersisted(RolePersist rolePersist) {
+            if (rolesPersisted == null) {
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
+            }
+
+            return rolesPersisted.TryAdd(rolePersist.RoleId, rolePersist);
         }
 
         public async Task RemoveRolePersistedAsync(ulong roleId) {
             if (rolesPersisted == null) {
-                await CacheRolesPersistedAsync();
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
             }
 
-            if (rolesPersisted.Remove(roleId)) {
+            else if (rolesPersisted.TryRemove(roleId, out _)) {
                 await Repository.RemoveRolePersistedAsync(Parent.Id, Id, roleId);
             }
         }
 
         public async Task RemoveRolesPersistedAsync(IEnumerable<ulong> roleIds) {
             if (rolesPersisted == null) {
-                await CacheRolesPersistedAsync();
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
             }
 
-            ulong[] rolesToRemove = roleIds.Intersect(rolesPersisted).ToArray();
-            rolesPersisted.ExceptWith(rolesToRemove);
+            ulong[] rolesToRemove = roleIds.Intersect(rolesPersisted.Keys).ToArray();
 
             if (rolesToRemove.Length > 0) {
+                foreach (ulong roleToRemove in rolesToRemove) {
+                    rolesPersisted.TryRemove(roleToRemove, out _);
+                }
+
                 await Repository.RemoveRolesPersistedAsync(Parent.Id, Id, rolesToRemove);
             }
         }
 
-        public async Task<IEnumerable<ulong>> GetRolesPersistedAsync() {
+        public bool IsRolePersisted(ulong roleId) {
             if (rolesPersisted == null) {
-                await CacheRolesPersistedAsync();
+                return false;
             }
 
-            return rolesPersisted;
+            return rolesPersisted.ContainsKey(roleId);
+        }
+
+        public IEnumerable<RolePersist> GetRolesPersisted() {
+            if (rolesPersisted == null) {
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
+            }
+
+            return rolesPersisted.Values;
+        }
+
+        public IEnumerable<ulong> GetRolesPersistedIds() {
+            if (rolesPersisted == null) {
+                rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
+            }
+
+            return rolesPersisted.Keys;
         }
 
 
@@ -94,7 +134,6 @@ namespace DiscordBot6 {
         
             else if (mutesPersisted.ContainsKey(channelId)) {
                 mutesPersisted[channelId].Expiry = expiry;
-                await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
             }
 
             else {
@@ -102,7 +141,7 @@ namespace DiscordBot6 {
                 mutesPersisted.TryAdd(channelId, mutePersist);
             }
 
-            await Repository.AddMutePersistedAsync(Parent.Id, Id, channelId, expiry);
+            await Repository.AddOrUpdateMutePersistedAsync(Parent.Id, Id, channelId, expiry);
         }
 
         public bool PrecacheMutePersisted(MutePersist mutePersist) { // this may render CacheMutesPersistedAsync entirely unneeded?
@@ -139,63 +178,87 @@ namespace DiscordBot6 {
             return mutesPersisted.Values;
         }
 
+        public IEnumerable<ulong> GetMutesPersistedIds() {
+            if (mutesPersisted == null) {
+                mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
+            }
 
-        public async Task AddContingentRoleRemovedAsync(ulong roleId, ulong contingentRoleId) {
-            if (contingentRolesRemoved == null) {
+            return mutesPersisted.Keys;
+        }
+
+
+        public async Task AddActiveContingentRoleAsync(ulong roleId, ulong contingentRoleId) {
+            if (activeContingentRoles == null) {
                 await CacheContingentRolesRemovedAsync();
             }
 
-            if (!contingentRolesRemoved.ContainsKey(roleId)) {
-                contingentRolesRemoved.TryAdd(roleId, new HashSet<ulong>());
+            if (!activeContingentRoles.ContainsKey(roleId)) {
+                activeContingentRoles.TryAdd(roleId, new HashSet<ulong>());
             }
 
-            if (contingentRolesRemoved[roleId].Add(contingentRoleId)) {
+            if (activeContingentRoles[roleId].Add(contingentRoleId)) {
                 await Repository.AddActiveContingentRoleAsync(Parent.Id, Id, roleId, contingentRoleId);
             }
         }
 
-        public async Task AddContingentRolesRemovedAsync(ulong roleId, IEnumerable<ulong> contingentRoleIds) {
-            if (contingentRolesRemoved == null) {
+        public async Task AddActiveContingentRoleAsync(ulong roleId, IEnumerable<ulong> contingentRoleIds) {
+            if (activeContingentRoles == null) {
                 await CacheContingentRolesRemovedAsync();
             }
 
-            if (!contingentRolesRemoved.ContainsKey(roleId)) {
-                contingentRolesRemoved.TryAdd(roleId, new HashSet<ulong>());
+            if (!activeContingentRoles.ContainsKey(roleId)) {
+                activeContingentRoles.TryAdd(roleId, new HashSet<ulong>());
             }
 
-            ulong[] newRoles = contingentRoleIds.Except(contingentRolesRemoved[roleId]).ToArray();
-            contingentRolesRemoved[roleId].UnionWith(newRoles);
+            ulong[] newRoles = contingentRoleIds.Except(activeContingentRoles[roleId]).ToArray();
+            activeContingentRoles[roleId].UnionWith(newRoles);
 
             if (newRoles.Length > 0) {
                 await Repository.AddActiveContingentRolesAsync(Parent.Id, Id, roleId, newRoles);
             }
         }
 
-        public async Task RemoveContingentRoleRemovedAsync(ulong roleId) {
-            if (contingentRolesRemoved == null) {
+        public async Task RemoveActiveContingentRoleAsync(ulong roleId) {
+            if (activeContingentRoles == null) {
                 await CacheContingentRolesRemovedAsync();
             }
 
-            if (contingentRolesRemoved.TryRemove(roleId, out _)) {
+            if (activeContingentRoles.TryRemove(roleId, out _)) {
                 await Repository.RemoveActiveContingentRolesAsync(Parent.Id, Id, roleId);
             }
         }
 
-        public async Task<ConcurrentDictionary<ulong, HashSet<ulong>>> GetContingentRolesRemovedAsync() {
-            if (contingentRolesRemoved == null) {
+        public async Task<IEnumerable<ulong>> GetActiveContingentRoleIds() {
+            if (activeContingentRoles == null) {
                 await CacheContingentRolesRemovedAsync();
             }
 
-            return contingentRolesRemoved;
+            return activeContingentRoles.Keys;
         }
 
+        public async Task<IEnumerable<ulong>> GetContingentRolesRemoved() {
+            if (activeContingentRoles == null) {
+                await CacheContingentRolesRemovedAsync();
+            }
 
-        private async Task CacheRolesPersistedAsync() {
-            rolesPersisted = new HashSet<ulong>(await Repository.GetRolesPersistsAsync(Parent.Id, Id));
+            return activeContingentRoles.Values.SelectMany(roles => roles).Distinct();
         }
+
+        public async Task<IEnumerable<ulong>> GetContingentRolesRemoved(ulong roleId) {
+            if (activeContingentRoles == null) {
+                await CacheContingentRolesRemovedAsync();
+            }
+
+            if (!activeContingentRoles.ContainsKey(roleId)) {
+                return null;
+            }
+
+            return activeContingentRoles[roleId];
+        }
+
 
         private async Task CacheContingentRolesRemovedAsync() {
-            contingentRolesRemoved = new ConcurrentDictionary<ulong, HashSet<ulong>>(await Repository.GetActiveContingentRolesAsync(Parent.Id, Id));
+            activeContingentRoles = new ConcurrentDictionary<ulong, HashSet<ulong>>(await Repository.GetActiveContingentRolesAsync(Parent.Id, Id));
         }
 
 

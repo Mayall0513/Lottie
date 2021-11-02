@@ -25,6 +25,28 @@ namespace DiscordBot6.Helpers {
                 .SendMessageAsync();
         }
 
+        public static async Task SendGenericTimedSuccessAsync(this ResponseBuilder responseBuilder, string message, DateTime start, TimeSpan period) {
+            DateTime end = start + period;
+
+            await responseBuilder
+                .WithText(message)
+                .WithField("Start", CommandHelper.GetResponseTimeStamp(start), true)
+                .WithField("End", CommandHelper.GetResponseTimeStamp(end), true)
+                .WithColor(Color.Green)
+                .SendMessageAsync();
+        }
+
+        public static async Task LogGenericTimedSuccessAsync(this ResponseBuilder responseBuilder, string message, DateTime start, TimeSpan period) {
+            DateTime end = start + period;
+
+            await responseBuilder
+               .WithText(message)
+               .WithField("Start", CommandHelper.GetResponseTimeStamp(start), true)
+               .WithField("End", CommandHelper.GetResponseTimeStamp(end), true)
+               .WithColor(Color.LighterGrey)
+               .SendMessageAsync();
+        }
+
 
         public static async Task SendTimedChannelMuteSuccessAsync(this ResponseBuilder responseBuilder, string message, string channelIdentifier, DateTime start, TimeSpan period) {
             DateTime end = start + period;
@@ -95,6 +117,18 @@ namespace DiscordBot6.Helpers {
             await responseBuilder
                 .WithText(message)
                 .WithErrors(errors)
+                .WithColor(Color.LightOrange)
+                .SendMessageAsync();
+        }
+
+        public static async Task SendGenericTimedMixedAsync(this ResponseBuilder responseBuilder, string message, DateTime start, TimeSpan period, params string[] errors) {
+            DateTime end = start + period;
+
+            await responseBuilder
+                .WithText(message)
+                .WithErrors(errors)
+                .WithField("Start", CommandHelper.GetResponseTimeStamp(start), true)
+                .WithField("End", CommandHelper.GetResponseTimeStamp(end), true)
                 .WithColor(Color.LightOrange)
                 .SendMessageAsync();
         }

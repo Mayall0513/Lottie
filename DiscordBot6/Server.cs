@@ -43,6 +43,7 @@ namespace DiscordBot6 {
 
         private CRUConstraints tempMuteConstraints;
         private CRUConstraints muteConstraints;
+        private CRUConstraints giveTempRolesConstraints;
         private CRUConstraints giveRolesConstraints;
         private CRUConstraints checkMutesConstraints;
         private CRUConstraints checkRolesConstraints;
@@ -146,6 +147,14 @@ namespace DiscordBot6 {
             }
 
             return muteConstraints.Matches(null, roleIds, userId);
+        }
+
+        public async Task<bool> UserMayGiveTempRoles(ulong userId, IEnumerable<ulong> roleIds) {
+            if (giveTempRolesConstraints == null) {
+                giveTempRolesConstraints = await Repository.GetConstraints(Id, Repository.ConstraintIntents.GIVEROLES);
+            }
+
+            return giveTempRolesConstraints.Matches(null, roleIds, userId);
         }
 
         public async Task<bool> UserMayGiveRoles(ulong userId, IEnumerable<ulong> roleIds) {

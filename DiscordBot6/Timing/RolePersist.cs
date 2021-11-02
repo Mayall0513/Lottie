@@ -1,7 +1,5 @@
 ﻿using Discord.WebSocket;
 using DiscordBot6.Helpers;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace DiscordBot6.Timing {

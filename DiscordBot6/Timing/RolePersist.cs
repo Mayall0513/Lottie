@@ -8,7 +8,7 @@ namespace DiscordBot6.Timing {
         public ulong UserId { get; set; }
         public ulong RoleId { get; set; }
 
-        public override async void OnExpiry(object state) {
+        public override async void OnExpiry() {
             SocketGuild socketGuild = DiscordBot6.Client.GetGuild(ServerId);
             if (socketGuild == null) {
                 return;
@@ -23,8 +23,11 @@ namespace DiscordBot6.Timing {
                 SocketRole socketRole = socketGuildUser.Roles.FirstOrDefault(role => RoleId == role.Id && socketGuild.MayEditRole(role));
 
                 if (socketRole != null) {
-                    user.IncrementRolesUpdated();
+                    ulong[] roleId = new ulong[1] { RoleId };
+                    user.AddMemberStatusUpdate(null, roleId);
+
                     await socketGuildUser.RemoveRoleAsync(socketRole);
+                    await user.ApplyContingentRolesAsync(socketGuildUser, socketGuildUser.GetRoleIds(), socketGuildUser.GetRoleIds().Except(roleId));
                 }
             }
         }

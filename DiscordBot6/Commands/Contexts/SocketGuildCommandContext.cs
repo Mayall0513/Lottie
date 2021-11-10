@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
 
 namespace DiscordBot6.Commands.Contexts {
     public sealed class SocketGuildCommandContext : ICommandContext {
@@ -9,6 +10,7 @@ namespace DiscordBot6.Commands.Contexts {
         public ISocketMessageChannel Channel { get; }
         public SocketGuildUser User { get; }
         public SocketUserMessage Message { get; }
+        public DateTime CommandTime { get; }
 
         public SocketGuildCommandContext(DiscordSocketClient client, SocketUserMessage message) {
             Client = client;
@@ -16,6 +18,7 @@ namespace DiscordBot6.Commands.Contexts {
             Channel = message.Channel;
             User = message.Author as SocketGuildUser;
             Message = message;
+            CommandTime = DateTime.UtcNow;
         }
 
         IDiscordClient ICommandContext.Client => Client;

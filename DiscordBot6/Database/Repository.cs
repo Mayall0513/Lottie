@@ -18,20 +18,6 @@ using System.Threading.Tasks;
 
 namespace DiscordBot6.Database {
     public static class Repository {
-        public enum GenericConstraintTypes : uint {
-            USER,
-            CHANNEL
-        }
-
-        public enum ConstraintIntents : uint {
-            TEMPMUTE,
-            MUTE,
-            GIVETEMPROLES,
-            GIVEROLES,
-            CHANNELMUTES,
-            ROLEPERSISTS
-        }
-
         public static async Task<Server> GetServerAsync(ulong id) {
             using MySqlConnection connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
             IEnumerable<dynamic> serverElements = await connection.QueryAsync<dynamic>("sp_Get_Server", new { id }, commandType: CommandType.StoredProcedure);
@@ -43,12 +29,18 @@ namespace DiscordBot6.Database {
                     serverModel.Id = serverElement.Id;
                     serverModel.CommandPrefix = serverElement.CommandPrefix;
                     serverModel.LogChannelId = serverElement.LogChannelId;
+                    serverModel.JailRoleId = serverElement.JailRoleId;
                     serverModel.AutoMutePersist = serverElement.AutoMutePersist;
                     serverModel.AutoDeafenPersist = serverElement.AutoDeafenPersist;
                     serverModel.AutoRolePersist = serverElement.AutoRolePersist;
 
                     if (serverElement.ChannelId != null) {
                         serverModel.CommandChannels.Add(serverElement.ChannelId);
+                    }
+
+                    if (serverElement.MessageType != null) {
+                        serverModel.CustomMessages.TryAdd(serverElement.MessageType, new List<string>());
+                        serverModel.CustomMessages[serverElement.MessageType].Add(serverElement.MessageText);
                     }
                 }
 

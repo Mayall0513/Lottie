@@ -6,7 +6,7 @@ namespace DiscordBot6.Timing {
         public ulong UserId { get; set; }
         public ulong ChannelId { get; set; }
         
-        public override async void OnExpiry(object state) {
+        public override async void OnExpiry() {
             SocketGuild socketGuild = DiscordBot6.Client.GetGuild(ServerId);
             if (socketGuild == null) {
                 return;
@@ -22,7 +22,7 @@ namespace DiscordBot6.Timing {
                 SocketUser socketUser = socketGuild.GetUser(UserId);
 
                 if (socketUser is SocketGuildUser socketGuildUser && socketGuildUser.VoiceChannel?.Id == ChannelId && socketGuildUser.IsMuted) {
-                    user.IncrementVoiceStatusUpdated();
+                    user.AddVoiceStatusUpdate(-1, 0);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
                 }
             }

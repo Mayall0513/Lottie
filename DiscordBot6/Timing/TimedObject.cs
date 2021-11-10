@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading;
+using System.Timers;
 
 namespace DiscordBot6.Timing {
     public abstract class TimedObject {
@@ -7,29 +7,42 @@ namespace DiscordBot6.Timing {
             get => expiry;
             set {
                 expiry = value;
-                timer?.Dispose();
 
-                if (value != null) {
+                if (value.HasValue) {
                     if (value < DateTime.UtcNow) {
-                        OnExpiry(null);
+                        Timer_Elapsed(null, null);
                     }
 
                     else {
-                        timer = new Timer(OnExpiry, null, value.Value - DateTime.UtcNow, Timeout.InfiniteTimeSpan);
+                        timer.Interval = (value.Value - DateTime.UtcNow).TotalMilliseconds;
+                        timer.Enabled = true;
                     }
                 }
             } 
         }
 
-        public virtual bool Expired => Expiry.HasValue && expiry.Value < DateTime.UtcNow;
+        public virtual bool Expired => expiry.HasValue && expiry.Value < DateTime.UtcNow;
 
         private DateTime? expiry;
-        private Timer timer;
+        private readonly Timer timer;
+
+        public TimedObject() {
+            timer = new Timer() {
+                AutoReset = false
+            };
+
+            timer.Elapsed += Timer_Elapsed;
+        }
+
+        private void Timer_Elapsed(object sender, ElapsedEventArgs eventArgs) {
+            OnExpiry();
+            timer.Enabled = false;
+        }
 
         ~TimedObject() {
             timer?.Dispose();
         }
 
-        public abstract void OnExpiry(object state);
+        public abstract void OnExpiry();
     }
 }

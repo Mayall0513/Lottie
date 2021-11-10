@@ -4,26 +4,24 @@ using PCRE;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace DiscordBot6.Helpers {
     public static class CommandHelper {
-        private static readonly PcreRegex timeSpanElementRegex;
+        public static readonly PcreRegex TimeSpanElementRegex;
 
         static CommandHelper() {
-            timeSpanElementRegex = new PcreRegex("[1-9][0-9]*[wdhms]", PcreOptions.Compiled | PcreOptions.Caseless);
+            TimeSpanElementRegex = new PcreRegex("[1-9][0-9]*[wdhms]", PcreOptions.Compiled | PcreOptions.Caseless);
         }
 
-        public static int SplitTimeSpan(string[] arguments) {
-            for (int i = arguments.Length - 1; i >= 0; --i) {
-                if (!timeSpanElementRegex.IsMatch(arguments[i])) {
-                    return i + 1;
-                }
+        public static bool GetTimeSpan(string[] arguments, out TimeSpan? timeSpan, out string[] errors) { 
+            if (arguments == null || arguments.Length == 0) {
+                timeSpan = null;
+                errors = new[] { "No time span parameters given" };
+
+                return false;
             }
 
-            return 0;
-        }
-
-        public static bool GetTimeSpan(string[] arguments, out TimeSpan timeSpan, out string[] errors, TimeSpan? minimumTimeSpan = null) {
             List<string> errorsList = new List<string>();
 
             int days = 0;
@@ -79,19 +77,62 @@ namespace DiscordBot6.Helpers {
             }
 
             timeSpan = new TimeSpan(days, hours, minutes, seconds);
-
-            if (minimumTimeSpan != null && timeSpan < minimumTimeSpan) {
-                errorsList.Add($"Time span is too short! Minimum is `{minimumTimeSpan.Value}`");
-            }
-
             errors = errorsList.ToArray();
+
             return errorsList.Count == 0;
         }
 
-        public static string GetResponseTimeStamp(DateTime dateTime) {
+        public static string GetResponseDateTime(DateTime dateTime) {
             ulong timeStamp = (ulong) (dateTime - DateTime.UnixEpoch).TotalSeconds;
 
             return $"<t:{timeStamp}:R>";
+        }
+
+        public static string GetResponseTimeSpan(TimeSpan timeSpan) {
+            List<string> timeSpanElements = new List<string>(4);
+
+            if (timeSpan.Days != 0) {
+                timeSpanElements.Add(GetResponseTimeSpanElement(timeSpan.Days, "day"));
+            }
+
+            if (timeSpan.Hours != 0) {
+                timeSpanElements.Add(GetResponseTimeSpanElement(timeSpan.Hours, "hour"));
+            }
+
+            if (timeSpan.Minutes != 0) {
+                timeSpanElements.Add(GetResponseTimeSpanElement(timeSpan.Minutes, "minute"));
+            }
+
+            if (timeSpan.Seconds != 0) {
+                timeSpanElements.Add(GetResponseTimeSpanElement(timeSpan.Seconds, "second"));
+            }
+
+            if (timeSpanElements.Count > 0) {
+                StringBuilder timeSpanBuilder = new StringBuilder();
+                timeSpanBuilder.Append(timeSpanElements[0]);
+
+                if (timeSpanElements.Count > 1) {
+                    for (int i = 1; i < timeSpanElements.Count - 1; ++i) {
+                        timeSpanBuilder.Append(", ").Append(timeSpanElements[i]);
+                    }
+
+                    timeSpanBuilder.Append(" and ").Append(timeSpanElements[^1]);
+                }
+
+                return timeSpanBuilder.ToString();
+            }
+
+            return null;
+        }
+
+        private static string GetResponseTimeSpanElement(int data, string descriptor) {
+            if (data == 1) {
+                return $"{data} {descriptor}";
+            }
+
+            else {
+                return $"{data} {descriptor}s";
+            }
         }
 
         public static int GetRoles(IEnumerable<string> arguments, SocketGuild guild, SocketGuildUser caller, out HashSet<SocketRole> validRoles, out HashSet<SocketRole> lockedRoles, out HashSet<ulong> phantomRoles, out List<string> invalidRoles) {

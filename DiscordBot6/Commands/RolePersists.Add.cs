@@ -51,7 +51,7 @@ namespace DiscordBot6.Commands {
                 await Context.Channel.CreateResponse()
                     .AsFailure()
                     .WithText("Whoops!")
-                    .WithErrors("Could not give any of the roles listed because they are all above you or I in the server's rank hierarchy")
+                    .WithErrors("Could not give any of the roles listed because they are all above you or I in the server's role hierarchy")
                     .SendMessageAsync();
 
                 return;
@@ -61,17 +61,17 @@ namespace DiscordBot6.Commands {
             HashSet<ulong> validRoleIds = new HashSet<ulong>(validRoles.Select(role => role.Id));
 
             user.AddMemberStatusUpdate(validRoleIds, null);
-
-            await user.AddRolesPersistedAsync(validRoleIds, hasTimeSpan ? Context.CommandTime + timeSpan.Value : (DateTime?) null);
-            await callee.AddRolesAsync(validRoles);
             await user.ApplyContingentRolesAsync(callee, callee.GetRoleIds(), callee.GetRoleIds().Union(validRoleIds));
+
+            await user.AddRolesPersistedAsync(validRoleIds, hasTimeSpan ? Context.CommandTime + timeSpan.Value : (DateTime?)null);
+            await callee.AddRolesAsync(validRoles);
 
             string validRolesSuffix = new StringBuilder().Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine)
                 .Append("**Roles:**").Append(DiscordBot6.DiscordNewLine)
                 .AppendJoin(DiscordBot6.DiscordNewLine, validRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString();
 
             IEnumerable<SocketRole> invalidRoles = roles.Where(role => !Context.Guild.MayEditRole(role, Context.User));
-            string invalidRolesMessage = invalidRoles.Any() ? new StringBuilder().Append("Could not give the following roles because they are above you or I in the server's rank hierarchy:")
+            string invalidRolesMessage = invalidRoles.Any() ? new StringBuilder().Append("Could not give the following roles because they are above you or I in the server's rike hierarchy:")
                 .Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine)
                 .AppendJoin(DiscordBot6.DiscordNewLine, invalidRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString() : null;
 

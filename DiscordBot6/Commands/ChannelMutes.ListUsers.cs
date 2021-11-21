@@ -67,7 +67,7 @@ namespace DiscordBot6.Commands {
                 .WithCustomSubject($"Created by {caller.Username}")
                 .WithTimeStamp()
                 .WithText(title + rolePersistsBuilder.ToString())
-                .WithButton(null, $"channelmutepersist_list@{page - 1}|{caller.Id} &{voiceChannel.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
+                .WithButton(null, $"channelmutepersist_list@{page - 1}|{caller.Id}&{voiceChannel.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
                 .WithButton(null, $"channelmutepersist_list@{page + 1}|{caller.Id}&{voiceChannel.Id}", DiscordBot6.NextPageEmoji, !finalPage)
                 .WithButton(null, $"channelmutepersist_list@{page}|{caller.Id}&{voiceChannel.Id}", DiscordBot6.RefreshPageEmoji);
         }

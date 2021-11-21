@@ -43,9 +43,9 @@ namespace Lottie.Commands {
             }
 
             ConstraintIntents userConstraints = hasTimeSpan ? ConstraintIntents.CHANNELMUTE_GIVE_TEMPORARY : ConstraintIntents.CHANNELMUTE_GIVE_PERMANENT;
-            Server server = await Context.Guild.GetServerAsync();
+            Server server = await Context.Guild.L_GetServerAsync();
 
-            if (!await server.UserMatchesConstraints(userConstraints, null, Context.User.GetRoleIds(), Context.Channel.Id)) {
+            if (!await server.UserMatchesConstraintsAsync(userConstraints, null, Context.User.GetRoleIds(), Context.Channel.Id)) {
                 await Context.Channel.CreateResponse()
                     .WithUserSubject(Context.User)
                     .SendNoPermissionsAsync();

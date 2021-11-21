@@ -165,13 +165,5 @@ namespace Lottie.Helpers {
 
             memberStatusUpdate = new MemberStatusUpdate(rolesAdded, rolesRemoved);
         }
-
-        public static async Task<Server> GetServerAsync(this IGuild guild) {
-            return await Server.GetServerAsync(guild.Id);
-        }
-
-        public static async Task<User> GetUserAsync(this IGuild guild, ulong id) {
-            return await (await GetServerAsync(guild)).GetUserAsync(id);
-        }
     }
 }

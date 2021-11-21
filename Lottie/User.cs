@@ -115,12 +115,12 @@ namespace Lottie {
 
         public Server Parent { get; set; }
 
-        private readonly ConcurrentDictionary<ulong, MutePersist> mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
-        private readonly ConcurrentDictionary<ulong, RolePersist> rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
-        private ConcurrentDictionary<ulong, HashSet<ulong>> activeContingentRoles;
+        public readonly ConcurrentDictionary<ulong, MutePersist> mutesPersisted = new ConcurrentDictionary<ulong, MutePersist>();
+        public readonly ConcurrentDictionary<ulong, RolePersist> rolesPersisted = new ConcurrentDictionary<ulong, RolePersist>();
+        public ConcurrentDictionary<ulong, HashSet<ulong>> activeContingentRoles;
 
-        private readonly VoiceStatusUpdates voiceStatusUpdates = new VoiceStatusUpdates();
-        private readonly MemberStatusUpdates memberStatusUpdates = new MemberStatusUpdates();
+        public readonly VoiceStatusUpdates voiceStatusUpdates = new VoiceStatusUpdates();
+        public readonly MemberStatusUpdates memberStatusUpdates = new MemberStatusUpdates();
 
 
         public User(ulong id, bool globalMutePersisted, bool globalDeafenPersist) {
@@ -128,7 +128,6 @@ namespace Lottie {
             GlobalMutePersisted = globalMutePersisted;
             GlobalDeafenPersisted = globalDeafenPersist;
         }
-
 
         public async Task AddRolesPersistedAsync(IEnumerable<ulong> roleIds, DateTime? expiry) {
             foreach (ulong roleId in roleIds) {

@@ -56,7 +56,7 @@ namespace Lottie {
 
             await foreach (MutePersist mutePersist in Repository.GetMutePersistsAllAsync(client.Guilds.Select(guild => guild.Id))) {
                 if (server == null || server.Id != mutePersist.ServerId) {
-                    server = await Server.GetServerAsync(mutePersist.ServerId);
+                    server = await Repository.GetServerAsync(mutePersist.ServerId);
                 }
 
                 User user = await server.GetUserAsync(mutePersist.UserId);
@@ -70,7 +70,7 @@ namespace Lottie {
 
             await foreach (RolePersist rolePersist in Repository.GetRolePersistsAllAsync(client.Guilds.Select(guild => guild.Id))) {
                 if (server == null || server.Id != rolePersist.ServerId) {
-                    server = await Server.GetServerAsync(rolePersist.ServerId);
+                    server = await Repository.GetServerAsync(rolePersist.ServerId);
                 }
 
                 User user = await server.GetUserAsync(rolePersist.UserId);
@@ -96,7 +96,7 @@ namespace Lottie {
             }
 
             if (socketMessage.Channel is SocketGuildChannel socketGuildChannel) { // message was sent in a server
-                Server server = await socketGuildChannel.Guild.GetServerAsync();
+                Server server = await socketGuildChannel.Guild.L_GetServerAsync();
 
                 if (socketMessage.Author.Id != socketGuildChannel.Guild.CurrentUser.Id && server.IsCommandChannel(socketMessage.Channel.Id)) { // message was not sent by the bot and was sent in a command channel
                     int argumentIndex = 0;
@@ -131,7 +131,7 @@ namespace Lottie {
             if (socketUser is SocketGuildUser socketGuildUser) { // this happened in a server's voice channel
                 Extensions.CompareVoiceStatuses(beforeState, afterState, out VoiceStatusUpdate voiceStatusUpdate);
 
-                Server server = await socketGuildUser.Guild.GetServerAsync();
+                Server server = await socketGuildUser.Guild.L_GetServerAsync();
                 User user = await server.GetUserAsync(socketUser.Id);
      
                 if (user.CheckVoiceStatusUpdate(voiceStatusUpdate)) {
@@ -168,7 +168,7 @@ namespace Lottie {
                         user.GlobalDeafenPersisted = afterState.IsDeafened;
                     }
 
-                    await server.SetUserAsync(socketGuildUser.Id, user);
+                    await server.SetUserAsync(user);
                 }
 
                 if (afterState.VoiceChannel != null && (beforeState.VoiceChannel != afterState.VoiceChannel) && !user.GlobalMutePersisted) { // the user moved channels AND they are not globally mute persisted
@@ -189,7 +189,7 @@ namespace Lottie {
                 return;
             }
 
-            Server server = await beforeUser.Value.Guild.GetServerAsync();
+            Server server = await beforeUser.Value.Guild.L_GetServerAsync();
             User user = await server.GetUserAsync(beforeUser.Id);
             if (user.CheckMemberStatusUpdate(memberStatusUpdate)) {
                 return;
@@ -212,7 +212,7 @@ namespace Lottie {
                 return;
             }
 
-            Server server = await socketGuildUser.Guild.GetServerAsync();
+            Server server = await socketGuildUser.Guild.L_GetServerAsync();
             User user = await server.GetUserAsync(socketGuildUser.Id);
 
             int pageIndex = messageComponent.Data.CustomId.IndexOf('@');
@@ -230,7 +230,7 @@ namespace Lottie {
             ResponseBuilder responseBuilder = null;
 
             if (messageComponent.Data.CustomId.StartsWith("rolepersist")) {
-                if (!await server.UserMatchesConstraints(ConstraintIntents.ROLEPERSIST_CHECK, null, socketGuildUser.GetRoleIds(), socketGuildUser.Id)) {
+                if (!await server.UserMatchesConstraintsAsync(ConstraintIntents.ROLEPERSIST_CHECK, null, socketGuildUser.GetRoleIds(), socketGuildUser.Id)) {
                     await messageComponent.DeferAsync();
                     return;
                 }
@@ -255,7 +255,7 @@ namespace Lottie {
             }
 
             if (messageComponent.Data.CustomId.StartsWith("channelmutepersist")) {
-                if (!await server.UserMatchesConstraints(ConstraintIntents.CHANNELMUTE_CHECK, null, socketGuildUser.GetRoleIds(), socketGuildUser.Id)) {
+                if (!await server.UserMatchesConstraintsAsync(ConstraintIntents.CHANNELMUTE_CHECK, null, socketGuildUser.GetRoleIds(), socketGuildUser.Id)) {
                     await messageComponent.DeferAsync();
                     return;
                 }
@@ -292,7 +292,7 @@ namespace Lottie {
         }
 
         private static async Task Client_UserJoined(SocketGuildUser socketUser) {
-            User user = await socketUser.Guild.GetUserAsync(socketUser.Id);
+            User user = await socketUser.L_GetUserAsync();
             IEnumerable<ulong> rolesPersisted = user.GetRolesPersistedIds();
 
             if (rolesPersisted.Any()) { // this user has role persists on this server

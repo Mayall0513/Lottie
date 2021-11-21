@@ -20,8 +20,8 @@ namespace Lottie.Commands {
                 return;
             }
 
-            Server server = await Context.Guild.GetServerAsync();
-            if (!await server.UserMatchesConstraints(Database.ConstraintIntents.ROLEPERSIST_CHECK, null, Context.User.GetRoleIds(), Context.User.Id)) {
+            Server server = await Context.Guild.L_GetServerAsync();
+            if (!await server.UserMatchesConstraintsAsync(Database.ConstraintIntents.ROLEPERSIST_CHECK, null, Context.User.GetRoleIds(), Context.User.Id)) {
                 await Context.Channel.CreateResponse()
                     .WithUserSubject(Context.User)
                     .SendNoPermissionsAsync();
@@ -36,7 +36,7 @@ namespace Lottie.Commands {
         }
 
         public static async Task<ResponseBuilder> CreateResponseAsync(SocketGuild guild, SocketGuildUser caller, SocketGuildUser callee, int page, IMessageChannel messageChannel = null) {
-            User user = await guild.GetUserAsync(callee.Id);
+            User user = await guild.L_GetUserAsync(callee.Id);
             RolePersist[] rolePersists = user.GetRolesPersisted();
             IEnumerable<RolePersist> pageContents = PaginationHelper.PerformPagination(rolePersists, page, out bool firstPage, out bool finalPage, out string pageDescriptor);
 

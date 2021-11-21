@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 namespace Lottie {
     public sealed class Server {
         private static readonly ConcurrentDictionary<ulong, Server> serverCache = new ConcurrentDictionary<ulong, Server>();
-        private readonly ConcurrentDictionary<ulong, User> users = new ConcurrentDictionary<ulong, User>();
+        private readonly ConcurrentDictionary<ulong, User> userCache = new ConcurrentDictionary<ulong, User>();
 
-        private IReadOnlyCollection<PhraseRule> phraseRules;
-        private IReadOnlyCollection<ContingentRole> contingentRoles;
+        public IReadOnlyCollection<PhraseRule> PhraseRules;
+        public IReadOnlyCollection<ContingentRole> ContingentRoles;
 
         public ulong Id { get; }
 
-        private readonly string commandPrefix;
+        public readonly string CommandPrefix;
 
         public bool HasLogChannel => logChannelId.HasValue;
         public ulong LogChannelId => logChannelId.Value;
@@ -32,7 +32,7 @@ namespace Lottie {
         public bool AutoMutePersist { get; }
         public bool AutoDeafenPersist { get; }
         public bool AutoRolePersist { get; }
-        
+
         private readonly HashSet<ulong> commandChannels = new HashSet<ulong>();
 
         private readonly ConcurrentDictionary<PresetMessageTypes, string[]> customMessages = new ConcurrentDictionary<PresetMessageTypes, string[]>();
@@ -40,10 +40,10 @@ namespace Lottie {
         private readonly ConcurrentDictionary<ulong, List<RolePersist>> rolePersistsCache = new ConcurrentDictionary<ulong, List<RolePersist>>();
         private readonly ConcurrentDictionary<ulong, List<MutePersist>> mutePersistsCache = new ConcurrentDictionary<ulong, List<MutePersist>>();
 
-        public Server(ulong id, string commandPrefix, ulong? logChannelId, ulong? jailRoleId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels, ConcurrentDictionary<PresetMessageTypes, string[]> customMesages) {
+        public Server(ulong id, string commandPrefix, ulong? logChannelId, ulong? jailRoleId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels, ConcurrentDictionary<PresetMessageTypes, string[]> customMessages) {
             Id = id;
 
-            this.commandPrefix = commandPrefix;
+            CommandPrefix = commandPrefix;
             this.logChannelId = logChannelId;
             this.jailRoleId = jailRoleId;
 
@@ -52,7 +52,7 @@ namespace Lottie {
             AutoRolePersist = autoRolePersist;
 
             this.commandChannels = new HashSet<ulong>(commandChannels);
-            this.customMessages = customMesages;
+            this.customMessages = customMessages;
         }
 
         public static async Task<Server> GetServerAsync(ulong id) {
@@ -75,24 +75,24 @@ namespace Lottie {
 
 
         public async Task<IEnumerable<PhraseRule>> GetPhraseRuleSetsAsync() {
-            if (phraseRules == null) {
-                phraseRules = await Repository.GetPhraseRulesAsync(Id) as IReadOnlyCollection<PhraseRule>;
+            if (PhraseRules == null) {
+                PhraseRules = await Repository.GetPhraseRulesAsync(Id) as IReadOnlyCollection<PhraseRule>;
             }
 
-            return phraseRules;
+            return PhraseRules;
         }
 
         public async Task<IEnumerable<ContingentRole>> GetContingentRolesAsync() {
-            if (contingentRoles == null) {
-                contingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
+            if (ContingentRoles == null) {
+                ContingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
             }
 
-            return contingentRoles;
+            return ContingentRoles;
         }
 
 
         public async Task<User> GetUserAsync(ulong id) {
-            if (!users.TryGetValue(id, out User user)) {
+            if (!userCache.TryGetValue(id, out User user)) {
                 user = await Repository.GetUserAsync(Id, id);
 
                 if (user == null) {
@@ -107,14 +107,14 @@ namespace Lottie {
                     user.Parent = this;
                 }
 
-                users.TryAdd(id, user);
+                userCache.TryAdd(id, user);
             }
 
             return user;
         }
 
-        public async Task SetUserAsync(ulong id, User user) {
-            users.AddOrUpdate(id,
+        public async Task SetUserAsync(User user) {
+            userCache.AddOrUpdate(user.Id,
                 (id) => user,
                 (id, oldUser) => user
             );
@@ -122,7 +122,7 @@ namespace Lottie {
             await Repository.AddOrUpdateUserAsync(user);
         }
 
-        public async Task<bool> UserMatchesConstraints(ConstraintIntents intent, ulong? channelId = null, IEnumerable<ulong> roleIds = null, ulong? userId = null) {
+        public async Task<bool> UserMatchesConstraintsAsync(ConstraintIntents intent, ulong? channelId = null, IEnumerable<ulong> roleIds = null, ulong? userId = null) {
             if (!constraints.TryGetValue(intent, out CRUConstraints intentConstraints)) {
                 intentConstraints = await Repository.GetConstraints(Id, intent);
                 constraints.TryAdd(intent, intentConstraints);
@@ -154,7 +154,7 @@ namespace Lottie {
         }
 
         public string GetCommandPrefix() {
-            return commandPrefix ?? DiscordBot6.DefaultCommandPrefix;
+            return CommandPrefix ?? DiscordBot6.DefaultCommandPrefix;
         }
     
     

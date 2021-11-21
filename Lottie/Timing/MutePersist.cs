@@ -12,16 +12,15 @@ namespace Lottie.Timing {
                 return;
             }
 
-            Server server = await Server.GetServerAsync(ServerId);
-            User user = await server?.GetUserAsync(UserId);
-
-            await user.RemoveMutePersistedAsync(ChannelId);
-
             SocketChannel socketChannel = socketGuild.GetChannel(ChannelId);
             if (socketChannel is SocketVoiceChannel socketVoiceChannel) {
                 SocketUser socketUser = socketGuild.GetUser(UserId);
 
+                
                 if (socketUser is SocketGuildUser socketGuildUser && socketGuildUser.VoiceChannel?.Id == ChannelId && socketGuildUser.IsMuted) {
+                    User user = await socketGuildUser.L_GetUserAsync();
+                    await user.RemoveMutePersistedAsync(ChannelId);
+
                     user.AddVoiceStatusUpdate(-1, 0);
                     await socketGuildUser.ModifyAsync(userProperties => { userProperties.Mute = false; });
                 }

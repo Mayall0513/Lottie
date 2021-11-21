@@ -20,8 +20,8 @@ namespace Lottie.Commands {
                 return;
             }
 
-            Server server = await Context.Guild.GetServerAsync();
-            if (!await server.UserMatchesConstraints(Database.ConstraintIntents.ROLEPERSIST_CHECK, null, Context.User.GetRoleIds(), Context.User.Id)) {
+            Server server = await Context.Guild.L_GetServerAsync();
+            if (!await server.UserMatchesConstraintsAsync(Database.ConstraintIntents.ROLEPERSIST_CHECK, null, Context.User.GetRoleIds(), Context.User.Id)) {
                 await Context.Channel.CreateResponse()
                     .WithUserSubject(Context.User)
                     .SendNoPermissionsAsync();

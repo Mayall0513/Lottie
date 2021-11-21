@@ -161,6 +161,8 @@ namespace DiscordBot6 {
             if (rolesPersisted.TryRemove(roleId, out RolePersist rolePersist)) {
                 await Repository.RemoveRolePersistedAsync(Parent.Id, Id, roleId);
                 Parent.UncacheRolePersist(rolePersist);
+
+                rolePersist.Dispose();
                 return true;
             }
 
@@ -216,8 +218,9 @@ namespace DiscordBot6 {
         public async Task<bool> RemoveMutePersistedAsync(ulong channelId) {
             if (mutesPersisted.TryRemove(channelId, out MutePersist mutePersist)) {
                 await Repository.RemoveMutePersistedAsync(Parent.Id, Id, channelId);
-
                 Parent.UncacheMutePersist(mutePersist);
+
+                mutePersist.Dispose();
                 return true;
             }
 

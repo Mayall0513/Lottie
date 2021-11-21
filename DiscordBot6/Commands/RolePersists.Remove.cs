@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using DiscordBot6.Commands.Contexts;
 using DiscordBot6.Helpers;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DiscordBot6.Commands {
@@ -35,7 +36,11 @@ namespace DiscordBot6.Commands {
 
             if (removeRolePersist) {
                 if (Context.Guild.MayEditRole(role, callee)) {
-                    await callee.RemoveRoleAsync(role);
+                    ulong[] roleId = new ulong[1] { role.Id };
+                    user.AddMemberStatusUpdate(null, roleId);
+
+                    await user.ApplyContingentRolesAsync(callee, callee.GetRoleIds(), callee.GetRoleIds().Except(roleId));
+                    await callee.RemoveRolesAsync(roleId);
                 }
                 
                 await AcknowledgeRoleUnpersist(Context.Channel, callee, role);
@@ -49,7 +54,7 @@ namespace DiscordBot6.Commands {
                     .AsFailure()
                     .WithUserSubject(callee)
                     .WithText("Whoops!")
-                    .WithErrors($"User doesn't have {CommandHelper.GetRoleIdentifier(role.Id, role)}")
+                    .WithErrors($"User doesn't have {CommandHelper.GetRoleIdentifier(role.Id, role)} persisted")
                     .SendMessageAsync();
             }
         }

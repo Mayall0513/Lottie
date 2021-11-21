@@ -40,7 +40,7 @@ namespace DiscordBot6.Commands {
             RolePersist[] rolePersists = user.GetRolesPersisted();
             IEnumerable<RolePersist> pageContents = PaginationHelper.PerformPagination(rolePersists, page, out bool firstPage, out bool finalPage, out string pageDescriptor);
 
-            string title = new StringBuilder().Append(CommandHelper.GetUserIdentifier(callee.Id, callee)).Append(" mute persists").Append(DiscordBot6.DiscordNewLine).ToString();
+            string title = new StringBuilder().Append(CommandHelper.GetUserIdentifier(callee.Id, callee)).Append(" role persists").Append(DiscordBot6.DiscordNewLine).ToString();
             if (rolePersists == null || rolePersists.Length == 0) {
                 return messageChannel.CreateResponse()
                     .AsSuccess()
@@ -67,7 +67,7 @@ namespace DiscordBot6.Commands {
                 .WithCustomSubject($"Created by {caller.Username}")
                 .WithTimeStamp()
                 .WithText(title + rolePersistsBuilder.ToString())
-                .WithButton(null, $"rolepersist_check@{page - 1}|{caller.Id} &{callee.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
+                .WithButton(null, $"rolepersist_check@{page - 1}|{caller.Id}&{callee.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
                 .WithButton(null, $"rolepersist_check@{page + 1}|{caller.Id}&{callee.Id}", DiscordBot6.NextPageEmoji, !finalPage)
                 .WithButton(null, $"rolepersist_check@{page}|{caller.Id}&{callee.Id}", DiscordBot6.RefreshPageEmoji);
         }

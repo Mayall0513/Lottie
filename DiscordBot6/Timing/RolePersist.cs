@@ -22,12 +22,12 @@ namespace DiscordBot6.Timing {
             if (socketUser is SocketGuildUser socketGuildUser) {
                 SocketRole socketRole = socketGuildUser.Roles.FirstOrDefault(role => RoleId == role.Id && socketGuild.MayEditRole(role));
 
-                if (socketRole != null) {
+                if (socketRole != null && socketGuild.MayEditRole(RoleId, null)) {
                     ulong[] roleId = new ulong[1] { RoleId };
                     user.AddMemberStatusUpdate(null, roleId);
 
-                    await socketGuildUser.RemoveRoleAsync(socketRole);
                     await user.ApplyContingentRolesAsync(socketGuildUser, socketGuildUser.GetRoleIds(), socketGuildUser.GetRoleIds().Except(roleId));
+                    await socketGuildUser.RemoveRolesAsync(roleId);
                 }
             }
         }

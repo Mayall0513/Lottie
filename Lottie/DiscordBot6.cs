@@ -132,8 +132,8 @@ namespace Lottie {
                 Extensions.CompareVoiceStatuses(beforeState, afterState, out VoiceStatusUpdate voiceStatusUpdate);
 
                 Server server = await socketGuildUser.Guild.L_GetServerAsync();
-                User user = await server.GetUserAsync(socketUser.Id);
-     
+                User user = await socketGuildUser.L_GetUserAsync();
+
                 if (user.CheckVoiceStatusUpdate(voiceStatusUpdate)) {
                     return;
                 }
@@ -190,7 +190,7 @@ namespace Lottie {
             }
 
             Server server = await beforeUser.Value.Guild.L_GetServerAsync();
-            User user = await server.GetUserAsync(beforeUser.Id);
+            User user = await beforeUser.Value.L_GetUserAsync();
             if (user.CheckMemberStatusUpdate(memberStatusUpdate)) {
                 return;
             }
@@ -213,7 +213,7 @@ namespace Lottie {
             }
 
             Server server = await socketGuildUser.Guild.L_GetServerAsync();
-            User user = await server.GetUserAsync(socketGuildUser.Id);
+            User user = await socketGuildUser.L_GetUserAsync();
 
             int pageIndex = messageComponent.Data.CustomId.IndexOf('@');
             int userIndex = messageComponent.Data.CustomId.IndexOf('|', pageIndex);

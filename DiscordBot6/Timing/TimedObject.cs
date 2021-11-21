@@ -2,7 +2,7 @@
 using System.Timers;
 
 namespace DiscordBot6.Timing {
-    public abstract class TimedObject {
+    public abstract class TimedObject : IDisposable {
         public virtual DateTime? Expiry {
             get => expiry;
             set {
@@ -17,6 +17,10 @@ namespace DiscordBot6.Timing {
                         timer.Interval = (value.Value - DateTime.UtcNow).TotalMilliseconds;
                         timer.Enabled = true;
                     }
+                }
+
+                else {
+                    timer.Enabled = false;
                 }
             } 
         }
@@ -39,7 +43,7 @@ namespace DiscordBot6.Timing {
             timer.Enabled = false;
         }
 
-        ~TimedObject() {
+        public virtual void Dispose() {
             timer?.Dispose();
         }
 

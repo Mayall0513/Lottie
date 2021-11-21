@@ -13,12 +13,12 @@ namespace Lottie {
         private static readonly ConcurrentDictionary<ulong, Server> serverCache = new ConcurrentDictionary<ulong, Server>();
         private readonly ConcurrentDictionary<ulong, User> userCache = new ConcurrentDictionary<ulong, User>();
 
-        public IReadOnlyCollection<PhraseRule> PhraseRules;
-        public IReadOnlyCollection<ContingentRole> ContingentRoles;
+        private IReadOnlyCollection<PhraseRule> phraseRules;
+        private IReadOnlyCollection<ContingentRole> contingentRoles;
 
         public ulong Id { get; }
 
-        public readonly string CommandPrefix;
+        private readonly string commandPrefix;
 
         public bool HasLogChannel => logChannelId.HasValue;
         public ulong LogChannelId => logChannelId.Value;
@@ -43,7 +43,7 @@ namespace Lottie {
         public Server(ulong id, string commandPrefix, ulong? logChannelId, ulong? jailRoleId, bool autoMutePersist, bool autoDeafenPersist, bool autoRolePersist, IEnumerable<ulong> commandChannels, ConcurrentDictionary<PresetMessageTypes, string[]> customMessages) {
             Id = id;
 
-            CommandPrefix = commandPrefix;
+            this.commandPrefix = commandPrefix;
             this.logChannelId = logChannelId;
             this.jailRoleId = jailRoleId;
 
@@ -75,19 +75,19 @@ namespace Lottie {
 
 
         public async Task<IEnumerable<PhraseRule>> GetPhraseRuleSetsAsync() {
-            if (PhraseRules == null) {
-                PhraseRules = await Repository.GetPhraseRulesAsync(Id) as IReadOnlyCollection<PhraseRule>;
+            if (phraseRules == null) {
+                phraseRules = await Repository.GetPhraseRulesAsync(Id) as IReadOnlyCollection<PhraseRule>;
             }
 
-            return PhraseRules;
+            return phraseRules;
         }
 
         public async Task<IEnumerable<ContingentRole>> GetContingentRolesAsync() {
-            if (ContingentRoles == null) {
-                ContingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
+            if (contingentRoles == null) {
+                contingentRoles = await Repository.GetContingentRulesAsync(Id) as IReadOnlyCollection<ContingentRole>;
             }
 
-            return ContingentRoles;
+            return contingentRoles;
         }
 
 
@@ -154,7 +154,7 @@ namespace Lottie {
         }
 
         public string GetCommandPrefix() {
-            return CommandPrefix ?? DiscordBot6.DefaultCommandPrefix;
+            return commandPrefix ?? DiscordBot6.DefaultCommandPrefix;
         }
     
     

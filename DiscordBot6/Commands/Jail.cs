@@ -91,13 +91,13 @@ namespace DiscordBot6.Commands {
             }
 
             ulong[] roleId = new ulong[1] { jailRole.Id };
-
             User user = await server.GetUserAsync(callee.Id);
+
             user.AddMemberStatusUpdate(roleId, null);
+            await user.ApplyContingentRolesAsync(callee, callee.GetRoleIds(), callee.GetRoleIds().Union(roleId));
 
             await user.AddRolesPersistedAsync(roleId, hasTimeSpan ? Context.CommandTime + timeSpan.Value : (DateTime?) null);
             await callee.AddRolesAsync(roleId);
-            await user.ApplyContingentRolesAsync(callee, callee.GetRoleIds(), callee.GetRoleIds().Union(roleId));
 
             await AcknowledgeJail(Context.Channel, callee, jailRole, Context.CommandTime, timeSpan);
             await SendReasonDM(presetMessage, callee);

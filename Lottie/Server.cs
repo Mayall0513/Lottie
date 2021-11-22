@@ -154,7 +154,7 @@ namespace Lottie {
         }
 
         public string GetCommandPrefix() {
-            return commandPrefix ?? DiscordBot6.DefaultCommandPrefix;
+            return commandPrefix ?? Lottie.DefaultCommandPrefix;
         }
     
     

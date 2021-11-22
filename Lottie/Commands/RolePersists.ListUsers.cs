@@ -39,17 +39,17 @@ namespace Lottie.Commands {
             RolePersist[] rolePersists = server.GetRoleCache(role.Id);
             IEnumerable<RolePersist> pageContents = PaginationHelper.PerformPagination(rolePersists, page, out bool firstPage, out bool finalPage, out string pageDescriptor);
 
-            string title = new StringBuilder().Append(CommandHelper.GetRoleIdentifier(role.Id, role)).Append(" persists").Append(DiscordBot6.DiscordNewLine).ToString();
+            string title = new StringBuilder().Append(CommandHelper.GetRoleIdentifier(role.Id, role)).Append(" persists").Append(Lottie.DiscordNewLine).ToString();
             if (pageContents == null) {
                 return messageChannel.CreateResponse()
                     .AsSuccess()
                     .WithCustomSubject($"Created by {caller.Username}")
                     .WithTimeStamp()
-                    .WithButton(null, $"rolepersist_list@{page}|{caller.Id}&{role.Id}", DiscordBot6.RefreshPageEmoji)
-                    .WithText(title + DiscordBot6.DiscordNewLine + "No users have this role persisted");
+                    .WithButton(null, $"rolepersist_list@{page}|{caller.Id}&{role.Id}", Lottie.RefreshPageEmoji)
+                    .WithText(title + Lottie.DiscordNewLine + "No users have this role persisted");
             }
 
-            StringBuilder rolePersistsBuilder = new StringBuilder().Append($"*Showing {pageDescriptor} of {rolePersists.Length}*").Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine);
+            StringBuilder rolePersistsBuilder = new StringBuilder().Append($"*Showing {pageDescriptor} of {rolePersists.Length}*").Append(Lottie.DiscordNewLine).Append(Lottie.DiscordNewLine);
 
             foreach (RolePersist rolePersist in pageContents) {
                 SocketGuildUser socketGuildUser = guild.GetUser(rolePersist.UserId);
@@ -59,7 +59,7 @@ namespace Lottie.Commands {
                     rolePersistsBuilder.Append(" until ").Append(CommandHelper.GetResponseDateTime(rolePersist.Expiry.Value));
                 }
 
-                rolePersistsBuilder.Append(DiscordBot6.DiscordNewLine);
+                rolePersistsBuilder.Append(Lottie.DiscordNewLine);
             }
 
             return messageChannel.CreateResponse()
@@ -67,9 +67,9 @@ namespace Lottie.Commands {
                 .WithCustomSubject($"Created by {caller.Username}")
                 .WithTimeStamp()
                 .WithText(title + rolePersistsBuilder.ToString())
-                .WithButton(null, $"rolepersist_list@{page - 1}|{caller.Id}&{role.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
-                .WithButton(null, $"rolepersist_list@{page + 1}|{caller.Id}&{role.Id}", DiscordBot6.NextPageEmoji, !finalPage)
-                .WithButton(null, $"rolepersist_list@{page}|{caller.Id}&{role.Id}", DiscordBot6.RefreshPageEmoji);
+                .WithButton(null, $"rolepersist_list@{page - 1}|{caller.Id}&{role.Id}", Lottie.PreviousPageEmoji, !firstPage)
+                .WithButton(null, $"rolepersist_list@{page + 1}|{caller.Id}&{role.Id}", Lottie.NextPageEmoji, !finalPage)
+                .WithButton(null, $"rolepersist_list@{page}|{caller.Id}&{role.Id}", Lottie.RefreshPageEmoji);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace Lottie.Timing {
         public ulong RoleId { get; set; }
 
         public override async void OnExpiry() {
-            SocketGuild socketGuild = DiscordBot6.Client.GetGuild(ServerId);
+            SocketGuild socketGuild = Lottie.Client.GetGuild(ServerId);
             if (socketGuild == null) {
                 return;
             }

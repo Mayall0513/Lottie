@@ -14,7 +14,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Lottie {
-    public static class DiscordBot6 {
+    public static class Lottie {
         public static DiscordShardedClient Client { get; private set; }
         private static CommandService commandService;
 

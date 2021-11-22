@@ -13,12 +13,12 @@ namespace Lottie.Helpers {
                 return null;
             }
 
-            int pageStart = page * DiscordBot6.PaginationSize;
+            int pageStart = page * Lottie.PaginationSize;
             if (pageStart >= source.Length) {
-                pageStart = (int)(Math.Floor((source.Length - 1) / (float) DiscordBot6.PaginationSize)) * DiscordBot6.PaginationSize;
+                pageStart = (int)(Math.Floor((source.Length - 1) / (float) Lottie.PaginationSize)) * Lottie.PaginationSize;
             }
 
-            int pageSize = Math.Min(DiscordBot6.PaginationSize, Math.Max(1, source.Length - pageStart));
+            int pageSize = Math.Min(Lottie.PaginationSize, Math.Max(1, source.Length - pageStart));
             firstPage = pageStart == 0;
             finalPage = !(pageStart + pageSize < source.Length);
             pageDescriptor = pageSize == 1 ? "1" : $"{pageStart + 1}-{pageStart + pageSize}";

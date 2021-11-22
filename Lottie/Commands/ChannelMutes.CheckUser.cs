@@ -41,17 +41,17 @@ namespace Lottie.Commands {
             MutePersist[] mutePersists = user.GetMutesPersisted();
             IEnumerable<MutePersist> pageContents = PaginationHelper.PerformPagination(mutePersists, page, out bool firstPage, out bool finalPage, out string pageDescriptor);
 
-            string title = new StringBuilder().Append(CommandHelper.GetUserIdentifier(callee.Id, callee)).Append(" mute persists").Append(DiscordBot6.DiscordNewLine).ToString();
+            string title = new StringBuilder().Append(CommandHelper.GetUserIdentifier(callee.Id, callee)).Append(" mute persists").Append(Lottie.DiscordNewLine).ToString();
             if (mutePersists == null || mutePersists.Length == 0) {
                 return messageChannel.CreateResponse()
                     .AsSuccess()
                     .WithCustomSubject($"Created by {caller.Username}")
                     .WithTimeStamp()
-                    .WithButton(null, $"channelmutepersist_check@{page}|{caller.Id}&{callee.Id}", DiscordBot6.RefreshPageEmoji)
-                    .WithText(title + DiscordBot6.DiscordNewLine + "User has no mute persists");
+                    .WithButton(null, $"channelmutepersist_check@{page}|{caller.Id}&{callee.Id}", Lottie.RefreshPageEmoji)
+                    .WithText(title + Lottie.DiscordNewLine + "User has no mute persists");
             }
 
-            StringBuilder rolePersistsBuilder = new StringBuilder().Append($"*Showing {pageDescriptor} of {mutePersists.Length}*").Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine);
+            StringBuilder rolePersistsBuilder = new StringBuilder().Append($"*Showing {pageDescriptor} of {mutePersists.Length}*").Append(Lottie.DiscordNewLine).Append(Lottie.DiscordNewLine);
             foreach (MutePersist mutePersist in pageContents) {
                 SocketVoiceChannel voiceChannel = guild.GetVoiceChannel(mutePersist.ChannelId);
                 rolePersistsBuilder.Append(CommandHelper.GetChannelIdentifier(mutePersist.ChannelId, voiceChannel));
@@ -60,7 +60,7 @@ namespace Lottie.Commands {
                     rolePersistsBuilder.Append(" until ").Append(CommandHelper.GetResponseDateTime(mutePersist.Expiry.Value));
                 }
 
-                rolePersistsBuilder.Append(DiscordBot6.DiscordNewLine);
+                rolePersistsBuilder.Append(Lottie.DiscordNewLine);
             }
 
             return messageChannel.CreateResponse()
@@ -68,9 +68,9 @@ namespace Lottie.Commands {
                 .WithCustomSubject($"Created by {caller.Username}")
                 .WithTimeStamp()
                 .WithText(title + rolePersistsBuilder.ToString())
-                .WithButton(null, $"channelmutepersist_check@{page - 1}|{caller.Id}&{callee.Id}", DiscordBot6.PreviousPageEmoji, !firstPage)
-                .WithButton(null, $"channelmutepersist_check@{page + 1}|{caller.Id}&{callee.Id}", DiscordBot6.NextPageEmoji, !finalPage)
-                .WithButton(null, $"channelmutepersist_check@{page}|{caller.Id}&{callee.Id}", DiscordBot6.RefreshPageEmoji);
+                .WithButton(null, $"channelmutepersist_check@{page - 1}|{caller.Id}&{callee.Id}", Lottie.PreviousPageEmoji, !firstPage)
+                .WithButton(null, $"channelmutepersist_check@{page + 1}|{caller.Id}&{callee.Id}", Lottie.NextPageEmoji, !finalPage)
+                .WithButton(null, $"channelmutepersist_check@{page}|{caller.Id}&{callee.Id}", Lottie.RefreshPageEmoji);
         }
     }
 }

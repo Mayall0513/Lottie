@@ -66,14 +66,14 @@ namespace Lottie.Commands {
             await user.AddRolesPersistedAsync(validRoleIds, hasTimeSpan ? Context.CommandTime + timeSpan.Value : (DateTime?)null);
             await callee.AddRolesAsync(validRoles);
 
-            string validRolesSuffix = new StringBuilder().Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine)
-                .Append("**Roles:**").Append(DiscordBot6.DiscordNewLine)
-                .AppendJoin(DiscordBot6.DiscordNewLine, validRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString();
+            string validRolesSuffix = new StringBuilder().Append(Lottie.DiscordNewLine).Append(Lottie.DiscordNewLine)
+                .Append("**Roles:**").Append(Lottie.DiscordNewLine)
+                .AppendJoin(Lottie.DiscordNewLine, validRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString();
 
             IEnumerable<SocketRole> invalidRoles = roles.Where(role => !Context.Guild.MayEditRole(role, Context.User));
             string invalidRolesMessage = invalidRoles.Any() ? new StringBuilder().Append("Could not give the following roles because they are above you or I in the server's rike hierarchy:")
-                .Append(DiscordBot6.DiscordNewLine).Append(DiscordBot6.DiscordNewLine)
-                .AppendJoin(DiscordBot6.DiscordNewLine, invalidRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString() : null;
+                .Append(Lottie.DiscordNewLine).Append(Lottie.DiscordNewLine)
+                .AppendJoin(Lottie.DiscordNewLine, invalidRoles.Select(role => CommandHelper.GetRoleIdentifier(role.Id, role))).ToString() : null;
 
             await AcknowledgeRolePersist(Context.Channel, callee, validRolesSuffix, invalidRolesMessage, Context.CommandTime, timeSpan);
             if (server.HasLogChannel) {

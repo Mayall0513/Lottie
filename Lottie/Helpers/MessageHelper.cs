@@ -157,7 +157,7 @@ namespace Lottie.Helpers {
 
         public ResponseBuilder WithText(string text) {
             if (embedBuilder.Description.Length > 0) {
-                embedBuilder.Description += DiscordBot6.DiscordNewLine + DiscordBot6.DiscordNewLine;
+                embedBuilder.Description += Lottie.DiscordNewLine + Lottie.DiscordNewLine;
             }
 
             embedBuilder.Description += text;
@@ -174,15 +174,15 @@ namespace Lottie.Helpers {
 
         public ResponseBuilder WithErrors(params string[] errors) {
             if (embedBuilder.Description.Length > 0) {
-                embedBuilder.Description += DiscordBot6.DiscordNewLine + DiscordBot6.DiscordNewLine;
+                embedBuilder.Description += Lottie.DiscordNewLine + Lottie.DiscordNewLine;
             }
 
             for (int i = 0; i < errors.Length; ++i) {
-                embedBuilder.Description += $"**Error #{i + 1}**" + DiscordBot6.DiscordNewLine;
+                embedBuilder.Description += $"**Error #{i + 1}**" + Lottie.DiscordNewLine;
                 embedBuilder.Description += errors[i];
 
-                embedBuilder.Description += DiscordBot6.DiscordNewLine;
-                embedBuilder.Description += DiscordBot6.DiscordNewLine;
+                embedBuilder.Description += Lottie.DiscordNewLine;
+                embedBuilder.Description += Lottie.DiscordNewLine;
             }
 
             return this;
